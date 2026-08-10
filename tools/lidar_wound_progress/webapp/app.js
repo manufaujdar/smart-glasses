@@ -1,3 +1,5 @@
+import { getWebXRDepthCapability } from "./depth-adapter.js";
+
 const STORAGE_KEY = "depthline.numeric-history.v1";
 const API_BASE = new URLSearchParams(window.location.search).get("api") || "http://127.0.0.1:8787/api";
 const $ = (id) => document.getElementById(id);
@@ -285,6 +287,15 @@ function updateSensorUI() {
     : "Professional LiDAR mode expects calibrated depth JSON and blocks comparisons against camera-estimate records.";
 }
 
+async function updateDepthApiStatus() {
+  const status = $("depthApiStatus");
+  if (!status) return;
+  const capability = await getWebXRDepthCapability();
+  status.textContent = capability.supported ? "WebXR depth available · native route recommended" : "Browser depth API unavailable · use native export";
+  status.title = capability.reason;
+  status.classList.toggle("available", capability.supported);
+}
+
 function setSensorMode(mode) {
   if (!new Set(["camera", "professional_lidar"]).has(mode)) return;
   const changed = state.sensorMode !== mode;
@@ -429,4 +440,4 @@ $("saveRecord").addEventListener("click", saveCurrent);
 $("downloadRecord").addEventListener("click", downloadCurrent);
 $("clearHistory").addEventListener("click", async () => { if (!confirm("Clear numeric history from this device?")) return; if (state.apiAvailable) { await Promise.all(state.records.map((record) => fetch(`${API_BASE}/records/${record.record_id}`, { method: "DELETE" }).catch(() => null))); } state.records = []; persistRecords(); renderTrend(); });
 
-updateSensorUI(); renderMetrics(); renderTrend(); initPersistence();
+updateSensorUI(); renderMetrics(); renderTrend(); initPersistence(); updateDepthApiStatus();

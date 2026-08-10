@@ -1,0 +1,11 @@
+# Optional research integrations. The core CLI and webapp do not need these.
+# Pin versions in a project-specific lockfile after device/OS validation.
+numpy
+open3d
+opencv-contrib-python
+monai
+
+# SAM 2 is installed from its upstream project with a compatible PyTorch build.
+# Keep model weights outside this repository and record their provenance.
+# torch
+# git+https://github.com/facebookresearch/sam2.git

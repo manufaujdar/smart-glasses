@@ -10,11 +10,20 @@ Future local model work may implement the interfaces in `contracts.py` for:
 - frame-quality or occlusion assessment;
 - pose/registration quality assessment.
 
-For professional multi-frame scans, a future adapter may wrap an open-source
-point-cloud library such as [Open3D](https://github.com/isl-org/Open3D) for
-registration. Keep this optional because the baseline browser/CLI tool must
-remain dependency-free and registration needs a validated fixture and error
-budget before it can support longitudinal comparison.
+The first optional implementations are now available as explicit seams:
+
+- `segmentation.py` contains a prompted [SAM 2](https://github.com/facebookresearch/sam2)
+  adapter. SAM 2 is a general segmentation model, not an automatic wound
+  segmenter; use it only with an operator prompt until a wound-specific model
+  and held-out validation set exist.
+- `registration.py` contains an [Open3D](https://github.com/isl-org/Open3D)
+  point-to-point ICP adapter with fitness and RMSE gates. Rejected alignment
+  must block longitudinal comparison.
+
+Keep these optional because the baseline browser/CLI tool must remain
+dependency-free. Install the research dependencies from
+`../requirements-optional.txt` only in an isolated environment, and record
+the exact versions, model weights, and notices used for a study.
 
 Any model must run behind an explicit adapter, emit model/version provenance,
 return uncertainty or quality information, and fail closed to clinician review.

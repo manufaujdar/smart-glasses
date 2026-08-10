@@ -1,0 +1,8 @@
+{
+  "observations": [
+    {"capture_id": "phantom-01", "known_mm": 10.0, "measured_mm": 9.8},
+    {"capture_id": "phantom-02", "known_mm": 25.0, "measured_mm": 24.7},
+    {"capture_id": "phantom-03", "known_mm": 50.0, "measured_mm": 49.5},
+    {"capture_id": "phantom-04", "known_mm": 75.0, "measured_mm": 74.3}
+  ]
+}

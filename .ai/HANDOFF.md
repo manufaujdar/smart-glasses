@@ -91,3 +91,33 @@ loopback HTTP smoke tests, and independent safety review before release.
 
 STATUS: READY FOR RELEASE — repository renamed; implementation and validation
 passed; functional branch push remains.
+
+## Low-latency media, voice, and OT runtime
+
+TASK: Add reusable open-source runtime structure for low-latency glasses video,
+image-quality bottleneck controls, transcript narration, voice commands, and
+operating-room-safe orchestration.
+
+SCOPE: `packages/media-runtime/`, `packages/voice-runtime/`,
+`services/ot-runtime/`, `tools/ot_runtime_simulator.py`, focused tests, and
+architecture/research documentation. Hardware, codec, WebRTC, speech-model,
+and Android permission integrations remain adapter work.
+
+SAFETY GATES: synthetic fixtures only; bounded queues and transcript buffers;
+exact voice allowlist; explicit confirmation for capture; preflight consent and
+visible capture-indicator checks; minimum battery/capability checks; disconnect
+safe stop; no patient identifiers, clinical navigation, diagnosis, treatment,
+or instrument control.
+
+VALIDATION: focused media/voice/OT tests, whole-project unit suite, Python
+compilation, and synthetic simulator smoke run. Open-source references are
+documented without copying upstream code, firmware, models, or data.
+
+RELEASE HARDENING: bounded frame payloads and metadata, stale sequence
+rejection, duplicate/stale voice-command guard, command text limits, narration
+command separation, and active device-health rechecks were added before
+publication.
+
+ACTIVE ROLE: execution and red-team packaging. NEXT OWNER: safety/privacy and
+human-factors reviewer, then release owner for license confirmation and any
+real-device adapter approval.

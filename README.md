@@ -16,6 +16,7 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
    python3 tools/device_simulator.py --scenario happy-path
    python3 tools/device_gateway.py --port 8767
    python3 tools/surgical_session_simulator.py
+   python3 tools/ot_runtime_simulator.py
    ```
 
    For a dependency-free browser view of the synthetic device state machine, run
@@ -42,8 +43,12 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
 apps/android-controller/       Android companion and HeyCyan adapter boundary
 packages/device-contracts/     Vendor-neutral device events and commands
 packages/surgical-workflows/   Non-clinical OR session and safety-state contracts
+packages/media-runtime/         Bounded low-latency video and image-quality controls
+packages/voice-runtime/         Narration and allowlisted voice-command contracts
 services/clinical-gateway/     Future PHI-aware policy and integration service
+services/ot-runtime/            Synthetic OT-safe media/voice session orchestrator
 tools/                         Deterministic local device simulator
+tools/ot_runtime_simulator.py  End-to-end synthetic media/voice/OT smoke tool
 tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool
 tools/lidar_wound_progress/    Standalone longitudinal LiDAR geometry reviewer
 tools/lidar_wound_progress/webapp/  Local-first camera/depth review webapp
@@ -68,6 +73,11 @@ third_party/                   License records and placeholders; no unlicensed S
 - vendor-neutral LiDAR surface-depth measurements with synthetic wound-surface fixtures
 - standalone longitudinal geometry signals with synthetic serial LiDAR captures
 - a runnable, synthetic surgical-observation session state machine
+- bounded low-latency frame buffering with keyframe-aware dropping
+- luma-based transport quality gates and adaptive media profiles
+- transcript/narration contracts and confirmation-gated voice commands
+- synthetic OT runtime with preflight, voice start/stop, live frame publishing,
+  and disconnect-safe stopping
 
 This repository is a research prototype. It must not be used for diagnosis, treatment selection, surgical navigation, or production handling of patient data.
 
@@ -75,3 +85,9 @@ The Android adapter sources define a licensed-SDK boundary but are not yet a
 buildable Android application. Physical-device behavior, permissions, thermal
 limits, media checksums, and the validation targets in
 `docs/testing/device-validation-plan.md` remain hardware-gated.
+
+The media and voice runtimes are intentionally adapter-first. They are
+functional with synthetic frames and transcripts; real glasses streaming,
+continuous speech recognition, codec tuning, and operating-room deployment
+still require hardware, network, permission, safety, privacy, security, and
+human-factors validation.

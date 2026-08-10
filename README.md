@@ -32,6 +32,7 @@ services/clinical-gateway/     Future PHI-aware policy and integration service
 tools/                         Deterministic local device simulator
 tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool
 tools/lidar_wound_progress/    Standalone longitudinal LiDAR geometry reviewer
+tools/lidar_wound_progress/webapp/  Local-first camera/depth review webapp
 tests/                         Protocol/state-machine tests
 docs/                          Architecture, research, safety, product and test plans
 third_party/                   License records and placeholders; no unlicensed SDK code

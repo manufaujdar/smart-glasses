@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta
+      name="description"
+      content="Local-first LiDAR wound-surface geometry review research prototype"
+    />
+    <title>Depthline · Wound geometry review</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand-mark" aria-hidden="true">D</div>
+      <div>
+        <p class="eyebrow">Local-first research prototype</p>
+        <h1>Depthline</h1>
+      </div>
+      <div class="header-status">No cloud upload · synthetic data included</div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow accent">LiDAR wound-surface review</p>
+          <h2 id="page-title">See the geometry change over time.</h2>
+          <p class="lede">
+            Capture a visual reference with your phone, then load a calibrated
+            depth grid from a LiDAR-capable scanner. Depthline compares the
+            measured surface against prior local records.
+          </p>
+        </div>
+        <aside class="safety-callout">
+          <strong>Research use only</strong>
+          <span>
+            A camera image is not a depth measurement. The app does not diagnose,
+            score healing, recommend treatment, or replace clinician review.
+          </span>
+        </aside>
+      </section>
+
+      <section class="workflow-grid" aria-label="Capture and analysis workflow">
+        <article class="panel camera-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step-label">01 · Visual reference</p>
+              <h3>Use device camera</h3>
+            </div>
+            <span class="status-dot" id="cameraStatus">Off</span>
+          </div>
+          <div class="camera-stage">
+            <video id="cameraPreview" autoplay playsinline muted aria-label="Live camera preview"></video>
+            <canvas id="cameraCanvas" hidden></canvas>
+            <div class="camera-placeholder" id="cameraPlaceholder">
+              <span class="camera-icon" aria-hidden="true">◌</span>
+              <span>Camera preview stays on this device.</span>
+            </div>
+          </div>
+          <div class="button-row">
+            <button class="button secondary" id="startCamera">Start camera</button>
+            <button class="button secondary" id="captureStill" disabled>Capture still</button>
+            <button class="button ghost" id="stopCamera" disabled>Stop</button>
+          </div>
+          <p class="helper" id="cameraMessage">
+            Camera access requires HTTPS or localhost. The captured image is not stored in history.
+          </p>
+          <img class="captured-still" id="capturedStill" alt="Captured visual reference" hidden />
+        </article>
+
+        <article class="panel depth-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step-label">02 · Calibrated depth</p>
+              <h3>Load LiDAR frame</h3>
+            </div>
+            <span class="status-dot neutral" id="depthStatus">Waiting</span>
+          </div>
+          <div class="drop-zone" id="dropZone">
+            <input id="depthFile" type="file" accept="application/json,.json" hidden />
+            <label for="depthFile" class="upload-label">
+              <span class="upload-icon" aria-hidden="true">↥</span>
+              <span><strong>Choose depth JSON</strong><br />or drop a calibrated frame here</span>
+            </label>
+            <button class="button demo-button" id="loadDemo">Load synthetic demo</button>
+          </div>
+          <div class="depth-contract">
+            <span class="contract-key">Expected fields</span>
+            <code>depth_mm · pixel_size_mm · roi</code>
+          </div>
+          <p class="helper" id="depthMessage">
+            Standard browser camera APIs do not expose raw LiDAR depth. Use an exported depth grid from a native scanner workflow.
+          </p>
+          <div class="file-summary" id="fileSummary" hidden></div>
+        </article>
+      </section>
+
+      <section class="analysis-layout" aria-labelledby="analysis-title">
+        <div class="panel analysis-panel">
+          <div class="panel-heading analysis-heading">
+            <div>
+              <p class="step-label">03 · Geometry review</p>
+              <h3 id="analysis-title">Current measurement</h3>
+            </div>
+            <span class="review-badge" id="reviewBadge">No frame loaded</span>
+          </div>
+          <div class="metric-grid" id="metricGrid">
+            <div class="metric-card empty-metric"><span>Depth offset</span><strong>—</strong><small>mm · plane-relative</small></div>
+            <div class="metric-card empty-metric"><span>Estimated volume</span><strong>—</strong><small>mm³ · approximation</small></div>
+            <div class="metric-card empty-metric"><span>Surface area</span><strong>—</strong><small>mm² · projected ROI</small></div>
+            <div class="metric-card empty-metric"><span>Data quality</span><strong>—</strong><small>engineering indicator</small></div>
+          </div>
+          <div class="analysis-actions">
+            <button class="button primary" id="saveRecord" disabled>Save numeric record</button>
+            <button class="button secondary" id="downloadRecord" disabled>Download JSON</button>
+          </div>
+          <p class="helper" id="analysisMessage">
+            Load a calibrated depth frame to calculate geometry. Your image is never included in the numeric record.
+          </p>
+        </div>
+
+        <aside class="panel trend-panel" aria-labelledby="trend-title">
+          <div class="panel-heading">
+            <div>
+              <p class="step-label">04 · Local history</p>
+              <h3 id="trend-title">Progress signal</h3>
+            </div>
+            <span class="trend-icon" aria-hidden="true">↗</span>
+          </div>
+          <div class="trend-display" id="trendDisplay">
+            <span class="trend-kicker">Baseline needed</span>
+            <strong>—</strong>
+            <p>Save a numeric record, then compare a later depth frame on this device.</p>
+          </div>
+          <div class="trend-detail" id="trendDetail">
+            No records are stored yet. History uses local browser storage only.
+          </div>
+          <div class="history-list" id="historyList"></div>
+          <button class="button danger-ghost" id="clearHistory">Clear local history</button>
+        </aside>
+      </section>
+
+      <section class="panel guide-panel" aria-labelledby="guide-title">
+        <div>
+          <p class="step-label">Input guide</p>
+          <h3 id="guide-title">A depth frame is a calibrated measurement, not a photo filter.</h3>
+        </div>
+        <div class="guide-grid">
+          <div><span>01</span><p>Capture under a consistent pose, distance, lighting, and scanner calibration.</p></div>
+          <div><span>02</span><p>Use a native LiDAR workflow to export a depth grid with millimetre units.</p></div>
+          <div><span>03</span><p>Compare only as a geometry signal; a clinician must interpret the full wound context.</p></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Depthline v0.1 · open research software</span>
+      <span>Do not use for diagnosis, treatment, triage, or autonomous decisions.</span>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

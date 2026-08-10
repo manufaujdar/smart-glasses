@@ -24,3 +24,20 @@
 - Active role: execution and open-source packaging. Next owner: human clinical
   reviewer for intended use and validation design, then a release owner to
   confirm copyright/license and whether to publish the branch.
+
+## Depthline webapp
+
+- Objective: provide a phone/tablet/laptop browser interface for visual camera
+  reference, calibrated depth JSON import, current geometry review, and local
+  baseline comparison.
+- Result: `tools/lidar_wound_progress/webapp/` is a dependency-free responsive
+  static webapp. RGB camera frames stay in memory; only numeric summaries are
+  stored in browser-local history. A browser camera is not treated as a raw
+  LiDAR depth source.
+- Validation: JavaScript syntax check, JSON validation, static HTTP-server
+  smoke test, full project test suite, Python compilation, and diff checks.
+- Publication: `manufaujdar/smart-glasses-research` is now public. The current
+  branch still excludes the pre-existing untracked reference snapshots.
+- Active role: release packaging. Next owner: human reviewer to approve the
+  public webapp wording, copyright/license candidate, and future real-sensor
+  validation before any clinical use.

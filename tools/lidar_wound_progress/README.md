@@ -114,3 +114,8 @@ python3 -m unittest discover -s tests -v
 The included tests use synthetic grids only. Any real sensor adapter or clinical
 research deployment requires separate calibration, privacy, intended-use, risk,
 regulatory, and validation review.
+
+The optional [`webapp/`](webapp/) folder provides a responsive phone/tablet/laptop
+interface. It captures an in-memory visual reference, imports calibrated depth
+JSON, and stores numeric history locally in the browser; it does not claim that
+an ordinary RGB camera can measure LiDAR depth.

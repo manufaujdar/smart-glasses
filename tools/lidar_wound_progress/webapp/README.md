@@ -45,10 +45,13 @@ Open `http://127.0.0.1:8766/`.
 
 The interface uses a small token-based CSS system, semantic HTML, and a quiet
 neutral palette so the comparison remains the visual focus. The layout was
-informed by the open-source design language of [Pico CSS](https://picocss.com/),
+informed by open-source references including [Pico CSS](https://picocss.com/),
 [Radix Colors](https://www.radix-ui.com/colors), [shadcn/ui](https://ui.shadcn.com/),
-and [GitHub Primer](https://primer.github.io/design/). No framework code or
-assets were copied; the webapp remains dependency-free and easy to audit.
+[GitHub Primer](https://primer.github.io/design/), the [CMS Design System](https://design.cms.gov/),
+and [DHIS2 UI](https://developers.dhis2.org/design-system/). The latter two were
+especially useful for restrained healthcare-oriented hierarchy and accessibility.
+No framework code or assets were copied; the webapp remains dependency-free and
+easy to audit.
 
 The browser automation is intentionally conservative. A future research build
 can replace the heuristics with a validated wound segmentation model, ChArUco
@@ -56,6 +59,17 @@ or ArUco calibration, ECC/feature-based registration, standardized color
 targets, and true device-depth APIs. Each replacement should retain model
 versioning, confidence/rejection thresholds, mask review, calibration records,
 and an external clinical validation protocol.
+
+## Supervised design-agent workflow
+
+The repository includes a local review agent at
+`tools/frontend_agent/frontend_agent.py`. It audits copy density, accessibility,
+responsive behavior, persistence disclosure, and measurement truthfulness before
+any model is allowed to edit. The current comparison set is Codex, Claude Code,
+Gemini CLI, and OpenHands SDK. The project does not select an agent by marketing
+claims: use the same brief, browser screenshots, regression tests, and privacy
+gates for each candidate. Never provide patient images, identifiers, credentials,
+or raw clinical captures to an external agent.
 
 ## What is not claimed
 

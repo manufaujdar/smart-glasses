@@ -181,11 +181,12 @@ def compare_agents() -> dict[str, Any]:
     return {
         "method": "capability matrix, not a model benchmark",
         "evaluation_rubric": [
-            {"criterion": "product clarity", "weight": 20, "check": "A first-time user can choose a route and complete one measurement without reading the full page."},
+            {"criterion": "product clarity", "weight": 15, "check": "A first-time user can choose a route and complete one measurement without reading the full page."},
             {"criterion": "visual craft", "weight": 20, "check": "Hierarchy, spacing, typography, and states feel intentional at mobile and desktop widths."},
+            {"criterion": "human tone and brand", "weight": 10, "check": "Labels sound like a thoughtful product team wrote them; the brand mark, palette, and content hierarchy have a clear reason to exist."},
             {"criterion": "responsive accessibility", "weight": 15, "check": "Keyboard focus, labels, contrast, reduced copy, and 320/768/desktop layouts are usable."},
             {"criterion": "functional regression", "weight": 20, "check": "Camera preview, LiDAR import, history, SQLite fallback, and download remain functional."},
-            {"criterion": "measurement truthfulness", "weight": 15, "check": "No RGB-depth or clinical recovery claim is introduced; uncertainty and limitations remain visible."},
+            {"criterion": "measurement truthfulness", "weight": 10, "check": "No RGB-depth or clinical recovery claim is introduced; uncertainty and limitations remain visible."},
             {"criterion": "privacy and maintainability", "weight": 10, "check": "No patient data upload, secrets, unexplained dependencies, or unreviewed generated bulk rewrite."},
         ],
         "release_gates": [
@@ -217,6 +218,9 @@ Constraints:
 - Do not claim RGB camera depth, wound healing, diagnosis, treatment, or clinical accuracy.
 - Preserve the dependency-free browser app and Python local service unless a change is justified.
 - Make the UI calmer, shorter, accessible, responsive, and explicit about camera-versus-LiDAR limitations.
+- Make the content sound human and product-specific: avoid generic AI marketing language, inflated promises, decorative gradients, excessive pills, and equal-weight cards.
+- Give the product one restrained visual idea—a measured contour/line motif is appropriate here—and use it consistently in the mark, accent, and result overlays.
+- Use healthcare-oriented open-source design references such as the CMS Design System, DHIS2 UI, Radix Colors, and Primer as principles, not copied code or assets.
 - Prefer small composable modules over a framework migration.
 - Do not add cloud uploads, patient identifiers, model weights, or secrets.
 - Return a proposed patch plan first. Do not edit files until a human approves it.
@@ -228,7 +232,7 @@ Agent comparison:
 {json.dumps(comparison, indent=2, sort_keys=True)}
 
 Deliver:
-1. Three highest-impact frontend changes.
+1. Three highest-impact frontend changes, including one voice or brand decision.
 2. One accessibility improvement and one measurement-truthfulness check.
 3. A browser validation checklist at 320px, 768px, and desktop widths.
 4. A small patch plan naming exact files and tests.

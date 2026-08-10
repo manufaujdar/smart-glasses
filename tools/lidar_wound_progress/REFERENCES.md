@@ -27,3 +27,9 @@ prototype is clinically accurate. No clinical performance claim is made here.
 - [Apache License 2.0, Apache Software Foundation](https://www.apache.org/licenses/LICENSE-2.0.txt)
 - [OSI approved licenses](https://opensource.org/licenses)
 - [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) — possible future choice for separately authored explanatory materials or datasets, not automatically applied to this code.
+
+## Security and privacy guidance
+
+- [HHS Security Rule](https://www.hhs.gov/hipaa/for-professionals/security/index.html) — administrative, physical, and technical safeguard context; this project is not HIPAA-certified.
+- [HHS Minimum Necessary Requirement](https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/minimum-necessary-requirement/index.html) — data-minimization context for any future PHI workflow.
+- [OWASP Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/) — application-security verification topics for a future reviewed deployment.

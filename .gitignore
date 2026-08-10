@@ -13,4 +13,4 @@ artifacts/device-captures/*
 !artifacts/device-captures/.gitkeep
 third_party/heycyan/*.aar
 third_party/heycyan/*.framework/
-
+tools/lidar_wound_progress/local_data/

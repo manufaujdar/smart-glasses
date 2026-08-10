@@ -6,8 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import threading
-from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -16,34 +14,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "device-contracts"))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from device_contracts import DeviceCommand  # noqa: E402
-from device_simulator import SimulatedGlasses  # noqa: E402
-
-ALLOWED_COMMANDS = {
-    "device.connect", "device.disconnect", "device.get_battery", "device.get_version",
-    "camera.take_photo", "camera.start_video", "camera.stop_video",
-    "audio.start_recording", "audio.stop_recording", "media.get_counts",
-}
+from device_gateway import DeviceGateway  # noqa: E402
 CONSOLE_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Glasses simulator lab</title><style>body{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}select,input,button{font:inherit;padding:.6rem}label{display:block;margin:.8rem 0}pre{background:#111827;color:#e5e7eb;padding:1rem;min-height:12rem;overflow:auto}.warn{background:#fff1ec;border-left:4px solid #a23b24;padding:.8rem}</style></head><body><h1>Smart Glasses simulator lab</h1><p class="warn">Synthetic research simulator only—not a medical device, physical-device controller, diagnostic system, or surgical navigation tool.</p><label>Command <select id="command"><option>device.connect</option><option>device.get_version</option><option>device.get_battery</option><option>camera.take_photo</option><option>camera.start_video</option><option>camera.stop_video</option><option>audio.start_recording</option><option>audio.stop_recording</option><option>media.get_counts</option><option>device.disconnect</option></select></label><label>Command ID (reuse it to test replay) <input id="id" value="browser-command-1"></label><button id="send">Send synthetic command</button><button id="reset">Reset simulator</button><pre id="result" aria-live="polite">Disconnected.</pre><script>let count=1;const out=document.querySelector('#result');async function request(path,body){const response=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});out.textContent=JSON.stringify(await response.json(),null,2)}document.querySelector('#send').onclick=async()=>{try{await request('/api/command',{name:document.querySelector('#command').value,command_id:document.querySelector('#id').value})}catch(error){out.textContent=String(error)}};document.querySelector('#reset').onclick=async()=>{try{await request('/api/reset',{});count+=1;document.querySelector('#id').value='browser-command-'+count}catch(error){out.textContent=String(error)}};</script></body></html>"""
 
-_device = SimulatedGlasses()
-_lock = threading.Lock()
+_gateway = DeviceGateway()
 
 
 def reset_simulator() -> dict[str, Any]:
-    global _device
-    with _lock:
-        _device = SimulatedGlasses()
-        return {"status": "reset", "state": _device.state.value, "device_id": _device.device_id}
+    return _gateway.reset()
 
 
 def execute_command(name: str, command_id: str) -> dict[str, Any]:
-    if name not in ALLOWED_COMMANDS:
-        raise ValueError("unsupported command")
-    if not isinstance(command_id, str) or not 1 <= len(command_id) <= 100:
-        raise ValueError("command_id must contain 1 to 100 characters")
-    with _lock:
-        return asdict(_device.execute(DeviceCommand(name=name, command_id=command_id)))
+    return _gateway.execute_command(name, command_id)["event"]
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):

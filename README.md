@@ -14,11 +14,25 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
    ```bash
    python3 -m unittest discover -s tests -v
    python3 tools/device_simulator.py --scenario happy-path
+   python3 tools/device_gateway.py --port 8767
    python3 tools/surgical_session_simulator.py
    ```
 
    For a dependency-free browser view of the synthetic device state machine, run
-   `python3 tools/web_console.py` and open `http://127.0.0.1:8766`.
+   `python3 tools/web_console.py` and open `http://127.0.0.1:8766`. The JSON
+   gateway provides `GET /health`, `GET /api/state`, `GET /api/events`,
+   `POST /api/command`, and `POST /api/reset` on loopback only.
+
+   Example command:
+
+   ```bash
+   curl -s http://127.0.0.1:8767/api/command \
+     -H 'content-type: application/json' \
+     -d '{"name":"device.connect","command_id":"connect-1"}'
+   ```
+
+   The gateway is synthetic and fail-closed: it does not connect to physical
+   glasses, accept clinical navigation commands, or store patient data.
 
 5. For a physical Android/HeyCyan test, follow [`apps/android-controller/README.md`](apps/android-controller/README.md).
 
@@ -33,6 +47,7 @@ tools/                         Deterministic local device simulator
 tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool
 tools/lidar_wound_progress/    Standalone longitudinal LiDAR geometry reviewer
 tools/lidar_wound_progress/webapp/  Local-first camera/depth review webapp
+tools/lidar_wound_progress/local_service.py  Loopback SQLite summary service
 tests/                         Protocol/state-machine tests
 docs/                          Architecture, research, safety, product and test plans
 third_party/                   License records and placeholders; no unlicensed SDK code

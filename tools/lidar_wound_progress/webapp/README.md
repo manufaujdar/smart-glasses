@@ -14,6 +14,14 @@ python3 -m http.server 8766 --directory tools/lidar_wound_progress/webapp
 Open `http://127.0.0.1:8766`. Camera access is available on localhost or a
 secure HTTPS deployment.
 
+The interface offers two routes:
+
+- **Phone/laptop camera** — lower accuracy. The camera is a visual reference;
+  the operator enters an approximate depth and area, and the app marks the
+  record as an operator estimate.
+- **Professional LiDAR sensor** — higher accuracy. Import a calibrated JSON
+  depth grid and use the plane-relative geometry engine.
+
 ## Important sensor limitation
 
 Browser camera APIs expose RGB/video capture, not a universal raw LiDAR-depth
@@ -39,3 +47,19 @@ Numeric records are stored in browser `localStorage` only. Captured images stay
 in memory and are not saved with the numeric history. This is not a clinical
 system and must not be used for diagnosis, treatment, triage, or recovery
 decisions.
+
+## Optional local SQLite service
+
+For a laptop-only local workflow, start the loopback service in a second
+terminal:
+
+```bash
+python3 tools/lidar_wound_progress/local_service.py
+```
+
+The webapp auto-detects `http://127.0.0.1:8787/api` and uses the SQLite service
+for numeric summaries and minimal audit events. If it is unavailable, the app
+falls back to browser-local storage. The service rejects raw depth grids,
+images, direct identifiers, oversized payloads, and non-loopback hosts by
+default. SQLite is not encrypted at rest; do not use it for PHI without an
+approved encryption, identity, retention, backup, and risk-management design.

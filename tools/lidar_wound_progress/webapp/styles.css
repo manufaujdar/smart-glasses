@@ -47,6 +47,15 @@ h3 { margin: 4px 0 0; font-size: 1.08rem; letter-spacing: -0.02em; }
 .lede { max-width: 610px; color: var(--muted); font-size: 1.05rem; }
 .safety-callout { display: grid; gap: 9px; padding: 19px; border: 1px solid rgba(244, 197, 107, 0.32); background: rgba(87, 65, 28, 0.27); border-radius: 14px; color: #f6d99b; font-size: 0.86rem; }
 .safety-callout span { color: #c8b78f; }
+.sensor-panel { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 24px; align-items: center; margin-bottom: 18px; padding: 20px 22px; }
+.sensor-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sensor-option { display: flex; gap: 11px; align-items: flex-start; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(7, 16, 20, 0.4); cursor: pointer; }
+.sensor-option.selected { border-color: rgba(108, 225, 209, 0.55); background: rgba(11, 52, 50, 0.5); }
+.sensor-option input { margin-top: 3px; accent-color: var(--cyan); }
+.sensor-option strong, .sensor-option small { display: block; }
+.sensor-option strong { font-size: 0.8rem; }
+.sensor-option small { margin-top: 4px; color: var(--muted); font-size: 0.68rem; }
+.sensor-helper { grid-column: 1 / -1; margin-top: -11px; }
 .workflow-grid, .analysis-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .panel { background: linear-gradient(145deg, rgba(23, 38, 42, 0.95), rgba(15, 25, 30, 0.95)); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
 .camera-panel, .depth-panel, .analysis-panel, .trend-panel { padding: 22px; }
@@ -67,6 +76,14 @@ h3 { margin: 4px 0 0; font-size: 1.08rem; letter-spacing: -0.02em; }
 .button.danger-ghost { margin-top: 16px; width: 100%; background: transparent; color: var(--rose); border: 1px solid rgba(241, 139, 139, 0.25); }
 .helper { margin: 14px 0 0; color: var(--subtle); font-size: 0.76rem; }
 .captured-still { width: 100%; margin-top: 16px; max-height: 200px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.camera-estimate-controls { margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--line); }
+.estimate-heading { display: flex; justify-content: space-between; gap: 10px; color: var(--ink); font-size: 0.78rem; }
+.estimate-heading span { color: var(--amber); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; }
+.estimate-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.estimate-fields label { display: grid; gap: 5px; color: var(--muted); font-size: 0.7rem; }
+.estimate-fields input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 8px 9px; color: var(--ink); background: #0b1519; }
+.estimate-fields input:focus { outline: 2px solid rgba(108, 225, 209, 0.45); outline-offset: 1px; }
+.camera-estimate-controls .button { margin-top: 11px; }
 .drop-zone { border: 1px dashed rgba(108, 225, 209, 0.38); border-radius: 12px; padding: 27px 18px 18px; text-align: center; background: rgba(11, 38, 38, 0.28); }
 .drop-zone.dragging { background: rgba(108, 225, 209, 0.12); border-color: var(--cyan); }
 .upload-label { display: block; color: var(--muted); font-size: 0.8rem; cursor: pointer; }
@@ -99,7 +116,7 @@ h3 { margin: 4px 0 0; font-size: 1.08rem; letter-spacing: -0.02em; }
 .guide-grid p { color: var(--muted); font-size: 0.78rem; }
 .site-footer { display: flex; justify-content: space-between; gap: 20px; padding: 0 0 30px; color: var(--subtle); font-size: 0.7rem; }
 @media (max-width: 850px) {
-  .intro, .workflow-grid, .analysis-layout, .guide-panel { grid-template-columns: 1fr; }
+  .intro, .workflow-grid, .analysis-layout, .guide-panel, .sensor-panel { grid-template-columns: 1fr; }
   .intro { gap: 24px; padding-top: 36px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .guide-grid { grid-template-columns: 1fr; }
@@ -110,5 +127,7 @@ h3 { margin: 4px 0 0; font-size: 1.08rem; letter-spacing: -0.02em; }
   .header-status { display: none; }
   h2 { font-size: 2.7rem; }
   .camera-panel, .depth-panel, .analysis-panel, .trend-panel, .guide-panel { padding: 17px; }
+  .sensor-options { grid-template-columns: 1fr; }
+  .estimate-fields { grid-template-columns: 1fr; }
   .site-footer { display: grid; }
 }

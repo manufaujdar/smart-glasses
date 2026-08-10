@@ -29,6 +29,10 @@ lidar_wound_progress/
   NOTICE                    attribution and no-copy statement
   CONTRIBUTING.md           contribution and data rules
   SECURITY.md               privacy and vulnerability reporting boundary
+  COMPLIANCE.md             research-only safeguards and deployment gates
+  local_storage.py          local numeric-summary SQLite boundary
+  local_service.py          optional loopback HTTP service
+  ml/                       optional provenance-first ML adapter contracts
 ```
 
 There are no runtime dependencies beyond Python 3.10+ standard library modules.
@@ -117,5 +121,6 @@ regulatory, and validation review.
 
 The optional [`webapp/`](webapp/) folder provides a responsive phone/tablet/laptop
 interface. It captures an in-memory visual reference, imports calibrated depth
-JSON, and stores numeric history locally in the browser; it does not claim that
-an ordinary RGB camera can measure LiDAR depth.
+JSON, and stores numeric history in browser storage or the optional local SQLite
+service; it does not claim that an ordinary RGB camera can measure LiDAR depth.
+See [COMPLIANCE.md](COMPLIANCE.md) for the explicit research-only boundary.

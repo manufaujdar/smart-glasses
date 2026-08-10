@@ -18,7 +18,7 @@
         <p class="eyebrow">Local-first research prototype</p>
         <h1>Depthline</h1>
       </div>
-      <div class="header-status">No cloud upload · synthetic data included</div>
+      <div class="header-status" id="persistenceStatus">Browser-local history · no cloud upload</div>
     </header>
 
     <main>
@@ -39,6 +39,24 @@
             score healing, recommend treatment, or replace clinician review.
           </span>
         </aside>
+      </section>
+
+      <section class="panel sensor-panel" aria-labelledby="sensor-title">
+        <div>
+          <p class="step-label">Choose measurement route</p>
+          <h3 id="sensor-title">Match the input to the accuracy you need.</h3>
+        </div>
+        <div class="sensor-options" role="radiogroup" aria-label="Measurement source">
+          <label class="sensor-option selected" id="cameraOption">
+            <input type="radio" name="sensorMode" value="camera" checked />
+            <span><strong>Phone / laptop camera</strong><small>Lower accuracy · visual reference plus operator estimate</small></span>
+          </label>
+          <label class="sensor-option" id="lidarOption">
+            <input type="radio" name="sensorMode" value="professional_lidar" />
+            <span><strong>Professional LiDAR sensor</strong><small>Higher accuracy · calibrated depth-grid import</small></span>
+          </label>
+        </div>
+        <p class="helper sensor-helper" id="sensorMessage">Camera mode does not infer millimetres from RGB pixels. Enter an operator estimate after capturing a visual reference.</p>
       </section>
 
       <section class="workflow-grid" aria-label="Capture and analysis workflow">
@@ -67,6 +85,18 @@
             Camera access requires HTTPS or localhost. The captured image is not stored in history.
           </p>
           <img class="captured-still" id="capturedStill" alt="Captured visual reference" hidden />
+          <div class="camera-estimate-controls" id="cameraEstimateControls">
+            <div class="estimate-heading"><strong>Camera-assisted estimate</strong><span>lower accuracy</span></div>
+            <div class="estimate-fields">
+              <label>Approx. depth (mm)<input id="approxDepthMm" type="number" min="0.1" max="100" step="0.1" value="4" /></label>
+              <label>Approx. area (mm²)<input id="approxAreaMm2" type="number" min="1" max="100000" step="1" value="16" /></label>
+            </div>
+            <div class="estimate-fields identity-fields">
+              <label>Opaque wound key<input id="woundId" type="text" maxlength="80" value="local-demo-wound" /></label>
+              <label>Capture ID<input id="captureId" type="text" maxlength="80" value="camera-visit-1" /></label>
+            </div>
+            <button class="button secondary" id="buildCameraEstimate">Create camera estimate</button>
+          </div>
         </article>
 
         <article class="panel depth-panel">

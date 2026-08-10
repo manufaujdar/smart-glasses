@@ -1,21 +1,21 @@
 # Current handoff
 
-## Synthetic research-code hardening complete
+## LiDAR wound-surface depth prototype
 
-- Objective: make the vendor-neutral controller and surgical-session simulator
-  fail closed under malformed commands, capability loss, disconnects, replay,
-  unsafe battery state, and capture-indicator faults.
-- Result: the controller validates JSON-safe finite payloads and command
-  fingerprints; session arming requires an observed connection and exact
-  capabilities; active capture and battery faults latch one terminal safe-stop
-  while preserving the primary reason; integrated disconnect replay is deduplicated.
-- Validation: 29 tests, both simulator smoke runs, Python compilation, and browser
-  interaction against the new synthetic device-command lab passed.
-  Independent safety review returned GO for synthetic research-code review only.
-- Safety/privacy boundary: synthetic identifiers only; no physical hardware,
-  clinical, diagnosis, treatment, navigation, media-transfer, or production claim.
-- Publication blockers: no human-approved `LICENSE`, no baseline commit, and no
-  decision on publishing the pinned third-party reference snapshots.
-- Active role: release handoff. Next owner: human release lead selects the license,
-  repository baseline and snapshot policy. Physical-device validation and a
-  buildable licensed Android adapter are separate future scopes.
+- Objective: add a vendor-neutral research tool for geometric depth analysis of
+  manually selected surface regions from calibrated LiDAR/depth-camera frames.
+- Result: `tools/lidar_wound_depth/` provides CSV/JSON loading, a
+  `DepthFrameSource` adapter boundary, local background-plane fitting, ROI
+  depth-offset/area/plane-relative volume measurements, quality flags, and
+  explicit research-only safety metadata.
+- Synthetic fixture: `tools/lidar_wound_depth/examples/synthetic_wound.csv`.
+- Validation: 35 project tests, Python compilation, `git diff --check`, and the
+  synthetic CLI smoke run passed.
+- Safety/privacy boundary: no patient data, device captures, proprietary SDKs,
+  wound classification, diagnosis, treatment, anatomical registration,
+  navigation, or production-clinical claim. Any real sensor adapter needs its
+  own calibration, privacy, risk, intended-use, and validation review.
+- Publication blockers: no human-approved `LICENSE`; the existing untracked
+  third-party reference snapshots are intentionally excluded from this change.
+- Active role: release handoff. Next owner: human clinical/product reviewer for
+  intended use and validation design, followed by a hardware adapter owner.

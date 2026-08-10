@@ -37,8 +37,9 @@ lidar_wound_progress/
 ```
 
 There are no runtime dependencies beyond Python 3.10+ standard library modules.
-The code does not contain a vendor SDK, segmentation model, patient capture, or
-automatic anatomical registration.
+The dependency-free baseline does not contain a vendor SDK, segmentation model,
+patient capture, or automatic anatomical registration; optional adapters are
+isolated and documented below.
 
 ## Run the synthetic example
 
@@ -94,6 +95,36 @@ The current implementation intentionally uses operator-supplied ROIs. For a
 future clinical research version, add validated segmentation, pose
 standardization, anatomical registration, repeatability statistics, and a
 reference-method comparison before interpreting trajectory signals.
+
+## Research integrations
+
+The optional research layer is deliberately separate from the working browser
+baseline:
+
+- `ml/segmentation.py` — prompted SAM 2 adapter with model provenance; not a
+  wound-specific automatic segmenter.
+- `ml/registration.py` — Open3D ICP adapter with fitness/RMSE rejection gates.
+- `calibration.py` — dependency-free phantom calibration fit and error report.
+- `validation.py` — segmentation, measurement, and repeatability metrics.
+- `depth_provider.py` — device-neutral true-depth frame contract.
+- `../../apps/android-controller/src/ArCoreDepthProvider.kt` and
+  `../../apps/ios-depth-adapter/ARKitDepthProvider.swift` — native device
+  seams.
+- `webapp/depth-adapter.js` — capability-only WebXR depth detection.
+
+See [OPEN_SOURCE_EXTENSIONS.md](OPEN_SOURCE_EXTENSIONS.md) for provenance and
+license boundaries and [VALIDATION_PROTOCOL.md](VALIDATION_PROTOCOL.md) for the
+study scaffold. Optional Python packages are listed in
+`requirements-optional.txt`; no model weights or patient data are included.
+
+Run the dependency-free research helpers with:
+
+```bash
+python3 -m tools.lidar_wound_progress.research_cli calibrate \
+  tools/lidar_wound_progress/examples/synthetic_calibration_manifest.json
+python3 -m tools.lidar_wound_progress.research_cli validate \
+  tools/lidar_wound_progress/examples/synthetic_validation_manifest.json
+```
 
 The single-frame reviewer also reports ROI/background coverage, fitted-plane
 tilt, a robust background-outlier count, and a repeatability proxy based on

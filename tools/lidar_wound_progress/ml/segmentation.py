@@ -121,3 +121,73 @@ class PromptedSam2Adapter:
                 "requires local model weights and external validation",
             ),
         )
+
+
+class TorchScriptWoundSegmentationAdapter:
+    """Load a locally trained binary wound-segmentation model.
+
+    Expected input is an RGB HWC image. The TorchScript model must accept a
+    float32 NCHW tensor and return one logit/probability map with the same
+    spatial dimensions. Training, preprocessing, and model validation remain
+    outside this repository; no model weights are bundled.
+    """
+
+    def __init__(self, model_path: str, model_name: str, model_version: str, device: str = "cpu", threshold: float = 0.5) -> None:
+        if not 0 < threshold < 1:
+            raise SegmentationError("segmentation threshold must be between 0 and 1")
+        self.model_path = model_path
+        self.model_name = model_name
+        self.model_version = model_version
+        self.device = device
+        self.threshold = threshold
+        self._model: Any | None = None
+
+    def _load(self) -> Any:
+        if self._model is not None:
+            return self._model
+        try:
+            import torch  # type: ignore
+        except ImportError as exc:
+            raise SegmentationError("TorchScript segmentation requires the optional torch dependency") from exc
+        try:
+            self._model = torch.jit.load(self.model_path, map_location=self.device).eval()
+        except (OSError, RuntimeError) as exc:
+            raise SegmentationError(f"could not load local segmentation model: {exc}") from exc
+        return self._model
+
+    def segment(self, image: Any, prompt: Sequence[float] | None = None) -> SegmentationResult:
+        del prompt  # The model is fully automatic; operator review is still required.
+        try:
+            import numpy as np  # type: ignore
+            import torch  # type: ignore
+
+            array = np.asarray(image)
+            if array.ndim != 3 or array.shape[2] != 3:
+                raise SegmentationError("automatic segmentation expects an HWC RGB image")
+            tensor = torch.from_numpy(array.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0).to(self.device)
+            with torch.inference_mode():
+                output = self._load()(tensor)
+            logits = output[0] if isinstance(output, (tuple, list)) else output
+            probabilities = logits.squeeze()
+            if probabilities.ndim != 2:
+                raise SegmentationError("segmentation model must return one 2D map")
+            if float(probabilities.min()) < 0 or float(probabilities.max()) > 1:
+                probabilities = torch.sigmoid(probabilities)
+            confidence = float(probabilities.max().item())
+            mask = validate_mask((probabilities >= self.threshold).cpu().numpy().tolist())
+        except SegmentationError:
+            raise
+        except (ImportError, TypeError, ValueError, RuntimeError) as exc:
+            raise SegmentationError(f"automatic segmentation failed: {exc}") from exc
+        return SegmentationResult(
+            mask=mask,
+            model_name=self.model_name,
+            model_version=self.model_version,
+            confidence=confidence,
+            uncertainty="probability threshold is not clinical uncertainty",
+            limitations=(
+                "model must be trained and validated on representative wound data",
+                "operator must review the mask and image quality",
+                "output does not estimate depth, infection, or recovery",
+            ),
+        )

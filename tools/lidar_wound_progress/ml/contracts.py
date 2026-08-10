@@ -1,4 +1,4 @@
-"""Optional ML seams; the baseline project intentionally uses no model."""
+"""Compatibility contracts for optional model and registration adapters."""
 
 from __future__ import annotations
 
@@ -41,3 +41,7 @@ class RegistrationAdapter(Protocol):
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
         """Return a transform, fitness, and uncertainty; never a clinical label."""
+
+
+# Concrete optional adapters live in separate modules so importing the package
+# never imports torch, Open3D, NumPy, or a vendor SDK.

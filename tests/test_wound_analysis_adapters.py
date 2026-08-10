@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from lidar_wound_progress.calibration import CalibrationError, CalibrationObservation, fit_depth_calibration  # noqa: E402
+from lidar_wound_progress.calibration_opencv import OpenCVCalibrationError, calibrate_charuco  # noqa: E402
 from lidar_wound_progress.depth_provider import DepthProviderError, NativeDepthFrame  # noqa: E402
 from lidar_wound_progress.ml.registration import Open3DRegistrationAdapter, RegistrationError  # noqa: E402
 from lidar_wound_progress.ml.segmentation import SegmentationError, validate_mask, validate_prompt  # noqa: E402
@@ -59,6 +60,10 @@ class WoundAnalysisAdapterTests(unittest.TestCase):
         self.assertEqual(frame.depth_mm(), ((500.0, 750.0),))
         with self.assertRaises(DepthProviderError):
             NativeDepthFrame(1, 2, 1, ((1.0,),), "mm", "bad")
+
+    def test_opencv_calibration_is_optional_and_input_validated(self):
+        with self.assertRaises(OpenCVCalibrationError):
+            calibrate_charuco([], [], object(), (640, 480))
 
 
 if __name__ == "__main__":

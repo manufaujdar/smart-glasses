@@ -30,7 +30,9 @@ The interface offers two routes:
 - Manual/simulated: the camera route does not infer depth from pixels. Its depth
   and area values are entered by the operator and converted into a clearly
   labeled manual estimate. Automatic wound segmentation, pose registration,
-  and clinical scoring are not included.
+  and clinical scoring are not included in the browser baseline. Optional
+  Python/native adapters for segmentation, registration, calibration, and
+  validation live outside the webapp.
 
 ## Important sensor limitation
 
@@ -39,6 +41,11 @@ stream. Depthline therefore keeps the camera capture as an optional visual
 reference and accepts a calibrated depth-grid JSON exported by a native
 LiDAR/depth-sensor workflow. The included synthetic demo is the only bundled
 data.
+
+The small `depth-adapter.js` module checks whether the browser exposes WebXR
+depth sensing. It does not request permission or open an AR session on page
+load. For true device depth, use the native ARCore/ARKit adapters and export a
+calibrated frame into this workflow.
 
 Expected depth JSON:
 

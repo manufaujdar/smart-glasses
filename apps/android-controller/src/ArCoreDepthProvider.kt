@@ -17,7 +17,7 @@ data class NativeDepthFrame(
     val timestampNs: Long,
     val width: Int,
     val height: Int,
-    val depthMm: ShortArray,
+    val depthMm: IntArray,
     val focalLengthX: Float,
     val focalLengthY: Float,
     val principalPointX: Float,
@@ -36,9 +36,15 @@ class ArCoreDepthProvider(private val session: Session) {
         if (!isSupported()) return null
         return try {
             frame.acquireDepthImage16Bits().use { image ->
-                val buffer = image.planes[0].buffer.order(ByteOrder.nativeOrder()).asShortBuffer()
-                val values = ShortArray(image.width * image.height)
-                buffer.get(values)
+                val plane = image.planes[0]
+                val buffer = plane.buffer.order(ByteOrder.nativeOrder())
+                val values = IntArray(image.width * image.height)
+                for (row in 0 until image.height) {
+                    for (column in 0 until image.width) {
+                        val byteOffset = row * plane.rowStride + column * plane.pixelStride
+                        values[row * image.width + column] = buffer.getShort(byteOffset).toInt() and 0xffff
+                    }
+                }
                 val intrinsics = frame.camera.imageIntrinsics
                 NativeDepthFrame(
                     timestampNs = frame.timestamp,

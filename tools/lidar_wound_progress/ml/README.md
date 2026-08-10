@@ -15,7 +15,9 @@ The first optional implementations are now available as explicit seams:
 - `segmentation.py` contains a prompted [SAM 2](https://github.com/facebookresearch/sam2)
   adapter. SAM 2 is a general segmentation model, not an automatic wound
   segmenter; use it only with an operator prompt until a wound-specific model
-  and held-out validation set exist.
+  and held-out validation set exist. The same module also contains a
+  TorchScript adapter for a locally trained automatic binary segmenter; the
+  model weights and training pipeline are intentionally not bundled.
 - `registration.py` contains an [Open3D](https://github.com/isl-org/Open3D)
   point-to-point ICP adapter with fitness and RMSE gates. Rejected alignment
   must block longitudinal comparison.

@@ -26,6 +26,26 @@ presence, pose alignment, lighting consistency, segmentation review, and image
 quality. Missing or poor inputs are reported as flags rather than silently
 producing a clinical-looking score.
 
+## Automation layers in the browser route
+
+The paired-photo interface now reduces repetitive setup with bounded, local
+heuristics: it suggests a shared ROI from abnormal color/luminance regions,
+searches a small translation window for frame registration, scores lighting
+consistency from exposure and contrast, checks basic image quality, and suggests
+scale-marker pixel widths when a bright rectangular reference is detectable.
+These suggestions are deliberately not treated as ground truth. The scale
+reference still requires confirmation and both generated outlines still require
+review before a result can pass the comparability gate. Manual ROI and
+sensitivity settings remain available under Advanced settings for difficult
+captures.
+
+For a research-grade replacement, the next layers should be a standardized
+capture guide with exposure/white-balance lock, ChArUco/ArUco or a validated
+scale/color target, OpenCV ECC or feature registration with rejection gates,
+validated wound-specific segmentation, and a true depth API with device and
+calibration provenance. These are integration seams, not claims that the
+current browser heuristics provide those capabilities.
+
 ## Why these factors are included
 
 Digital planimetry is preferable to multiplying longest length by widest width:

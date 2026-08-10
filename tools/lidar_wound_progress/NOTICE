@@ -1,0 +1,8 @@
+LiDAR wound-progress reviewer
+
+Copyright 2026 Manu Faujdar — copyright holder confirmation required before
+public release.
+
+This standalone folder contains original research-prototype code written for
+this project. No third-party source code, clinical images, patient identifiers,
+vendor SDK binaries, or model weights are included.

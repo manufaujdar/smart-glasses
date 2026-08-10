@@ -30,6 +30,7 @@ packages/device-contracts/     Vendor-neutral device events and commands
 packages/surgical-workflows/   Non-clinical OR session and safety-state contracts
 services/clinical-gateway/     Future PHI-aware policy and integration service
 tools/                         Deterministic local device simulator
+tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool
 tests/                         Protocol/state-machine tests
 docs/                          Architecture, research, safety, product and test plans
 third_party/                   License records and placeholders; no unlicensed SDK code
@@ -47,6 +48,7 @@ third_party/                   License records and placeholders; no unlicensed S
 - capability-mismatch rejection before device actions
 - active-session safe stops for disconnect, critical battery, and capture-indicator loss
 - groundwork for clinical capture, telepresence and documentation workflows
+- vendor-neutral LiDAR surface-depth measurements with synthetic wound-surface fixtures
 - a runnable, synthetic surgical-observation session state machine
 
 This repository is a research prototype. It must not be used for diagnosis, treatment selection, surgical navigation, or production handling of patient data.

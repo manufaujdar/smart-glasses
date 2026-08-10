@@ -25,18 +25,16 @@
       <section class="intro" aria-labelledby="page-title">
         <div>
           <p class="eyebrow accent">LiDAR wound-surface review</p>
-          <h2 id="page-title">See the geometry change over time.</h2>
+          <h2 id="page-title">Measure wound geometry.</h2>
           <p class="lede">
-            Capture a visual reference with your phone, then load a calibrated
-            depth grid from a LiDAR-capable scanner. Depthline compares the
-            measured surface against prior local records.
+            Choose a camera-assisted estimate or import calibrated LiDAR. Save
+            only numeric measurements and compare them locally over time.
           </p>
         </div>
         <aside class="safety-callout">
           <strong>Research use only</strong>
           <span>
-            A camera image is not a depth measurement. The app does not diagnose,
-            score healing, recommend treatment, or replace clinician review.
+            Geometry signal only—not a clinical wound score or treatment tool.
           </span>
         </aside>
       </section>
@@ -64,7 +62,7 @@
           <div class="panel-heading">
             <div>
               <p class="step-label">01 · Visual reference</p>
-              <h3>Use device camera</h3>
+              <h3>Camera-assisted estimate</h3>
             </div>
             <span class="status-dot" id="cameraStatus">Off</span>
           </div>
@@ -86,7 +84,7 @@
           </p>
           <img class="captured-still" id="capturedStill" alt="Captured visual reference" hidden />
           <div class="camera-estimate-controls" id="cameraEstimateControls">
-            <div class="estimate-heading"><strong>Camera-assisted estimate</strong><span>lower accuracy</span></div>
+            <div class="estimate-heading"><strong>Manual depth and area</strong><span>lower accuracy</span></div>
             <div class="estimate-fields">
               <label>Approx. depth (mm)<input id="approxDepthMm" type="number" min="0.1" max="100" step="0.1" value="4" /></label>
               <label>Approx. area (mm²)<input id="approxAreaMm2" type="number" min="1" max="100000" step="1" value="16" /></label>
@@ -103,7 +101,7 @@
           <div class="panel-heading">
             <div>
               <p class="step-label">02 · Calibrated depth</p>
-              <h3>Load LiDAR frame</h3>
+              <h3>Import LiDAR frame</h3>
             </div>
             <span class="status-dot neutral" id="depthStatus">Waiting</span>
           </div>
@@ -114,10 +112,6 @@
               <span><strong>Choose depth JSON</strong><br />or drop a calibrated frame here</span>
             </label>
             <button class="button demo-button" id="loadDemo">Load synthetic demo</button>
-          </div>
-          <div class="depth-contract">
-            <span class="contract-key">Expected fields</span>
-            <code>depth_mm · pixel_size_mm · roi</code>
           </div>
           <p class="helper" id="depthMessage">
             Standard browser camera APIs do not expose raw LiDAR depth. Use an exported depth grid from a native scanner workflow.
@@ -146,8 +140,9 @@
             <button class="button secondary" id="downloadRecord" disabled>Download JSON</button>
           </div>
           <p class="helper" id="analysisMessage">
-            Load a calibrated depth frame to calculate geometry. Your image is never included in the numeric record.
+            Choose a route, then load a frame or create an estimate.
           </p>
+          <p class="measurement-note" id="measurementNote">Quality is an engineering indicator; it is not clinical confidence.</p>
         </div>
 
         <aside class="panel trend-panel" aria-labelledby="trend-title">
@@ -171,17 +166,6 @@
         </aside>
       </section>
 
-      <section class="panel guide-panel" aria-labelledby="guide-title">
-        <div>
-          <p class="step-label">Input guide</p>
-          <h3 id="guide-title">A depth frame is a calibrated measurement, not a photo filter.</h3>
-        </div>
-        <div class="guide-grid">
-          <div><span>01</span><p>Capture under a consistent pose, distance, lighting, and scanner calibration.</p></div>
-          <div><span>02</span><p>Use a native LiDAR workflow to export a depth grid with millimetre units.</p></div>
-          <div><span>03</span><p>Compare only as a geometry signal; a clinician must interpret the full wound context.</p></div>
-        </div>
-      </section>
     </main>
 
     <footer class="site-footer">

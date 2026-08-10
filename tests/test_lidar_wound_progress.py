@@ -8,8 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from lidar_wound_progress import (  # noqa: E402
+    DepthFrame,
     DepthGridError,
     ProgressManifestError,
+    analyze_depth_frame,
     analyze_manifest,
     load_manifest,
 )
@@ -87,6 +89,18 @@ class LidarWoundProgressTests(unittest.TestCase):
             wound_id, captures = load_manifest(path)
             with self.assertRaises(DepthGridError):
                 analyze_manifest(wound_id, captures)
+
+    def test_robust_plane_fit_trims_isolated_background_spike(self):
+        grid = depth_grid(24.0)
+        grid[1][1] = 100.0
+        summary = analyze_depth_frame(
+            DepthFrame(grid, 1.0, 1.0, "synthetic-outlier"),
+            [3, 3, 7, 7],
+            ring_width=2,
+        )
+        self.assertGreater(summary["measurements"]["background_outliers_trimmed"], 0)
+        self.assertAlmostEqual(summary["measurements"]["median_depth_offset_mm"], 4.0)
+        self.assertIn("background_outliers_trimmed", summary["quality"]["flags"])
 
 
 if __name__ == "__main__":

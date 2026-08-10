@@ -36,6 +36,9 @@ _MEASUREMENT_KEYS = {
     "background_median_depth_mm",
     "background_mad_mm",
     "roi_residual_mad_mm",
+    "background_outliers_trimmed",
+    "plane_tilt_deg",
+    "repeatability_proxy_mm",
 }
 
 

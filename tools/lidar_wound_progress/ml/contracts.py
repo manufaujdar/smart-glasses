@@ -29,3 +29,15 @@ class ReviewQualityAdapter(Protocol):
 
     def assess(self, measurements: dict[str, float], metadata: dict[str, Any]) -> dict[str, Any]:
         """Return data-quality information with model/version provenance."""
+
+
+class RegistrationAdapter(Protocol):
+    """Optional frame-registration boundary for repeated professional scans."""
+
+    def register(
+        self,
+        reference_points: Sequence[Sequence[float]],
+        current_points: Sequence[Sequence[float]],
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return a transform, fitness, and uncertainty; never a clinical label."""

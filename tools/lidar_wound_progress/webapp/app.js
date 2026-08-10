@@ -125,7 +125,7 @@ function collectSamples(grid, roi, px, py, includeRoi, ringWidth) {
   return samples;
 }
 
-function fitPlane(samples) {
+function fitPlaneLeastSquares(samples) {
   if (samples.length < 3) throw new Error("At least three valid background samples are required");
   const meanX = samples.reduce((sum, sample) => sum + sample[0], 0) / samples.length;
   const meanY = samples.reduce((sum, sample) => sum + sample[1], 0) / samples.length;
@@ -140,6 +140,23 @@ function fitPlane(samples) {
   const slopeX = (sxz * syy - syz * sxy) / determinant;
   const slopeY = (syz * sxx - sxz * sxy) / determinant;
   return { slopeX, slopeY, intercept: meanZ - slopeX * meanX - slopeY * meanY };
+}
+
+function fitPlaneRobust(samples) {
+  let active = [...samples];
+  let removed = 0;
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const plane = fitPlaneLeastSquares(active);
+    const residuals = active.map(([x, y, z]) => z - (plane.slopeX * x + plane.slopeY * y + plane.intercept));
+    const centre = median(residuals);
+    const spread = mad(residuals, centre);
+    const threshold = Math.max(1, 3 * 1.4826 * spread);
+    const inliers = active.filter(([x, y, z]) => Math.abs((z - (plane.slopeX * x + plane.slopeY * y + plane.intercept)) - centre) <= threshold);
+    if (inliers.length < 3 || inliers.length === active.length) return { plane, removed };
+    removed += active.length - inliers.length;
+    active = inliers;
+  }
+  return { plane: fitPlaneLeastSquares(active), removed };
 }
 
 function analysePayload(payload) {
@@ -158,7 +175,7 @@ function analysePayload(payload) {
   const roiSamples = collectSamples(grid, [x0, y0, x1, y1], spacingX, spacingY, true, ringWidth);
   const backgroundSamples = collectSamples(grid, [x0, y0, x1, y1], spacingX, spacingY, false, ringWidth);
   if (roiSamples.length < 4 || backgroundSamples.length < 3) throw new Error("Not enough valid ROI/background samples");
-  const plane = fitPlane(backgroundSamples);
+  const { plane, removed: removedBackgroundOutliers } = fitPlaneRobust(backgroundSamples);
   const offsets = roiSamples.map(([x, y, z]) => z - (plane.slopeX * x + plane.slopeY * y + plane.intercept));
   const positive = offsets.map((value) => Math.max(0, value));
   const backgroundDepths = backgroundSamples.map((sample) => sample[2]);
@@ -168,18 +185,28 @@ function analysePayload(payload) {
   const roiMad = mad(offsets, medianOffset);
   const expectedRoi = (x1 - x0) * (y1 - y0);
   const expectedBackground = ((x1 - x0) + (2 * ringWidth)) * ((y1 - y0) + (2 * ringWidth)) - expectedRoi;
+  const roiCoverage = roiSamples.length / Math.max(1, expectedRoi);
+  const backgroundCoverage = backgroundSamples.length / Math.max(1, expectedBackground);
+  const planeTiltDeg = Math.atan(Math.hypot(plane.slopeX, plane.slopeY)) * 180 / Math.PI;
+  const repeatabilityProxy = Math.max(backgroundMad * 1.4826, roiMad);
   const flags = [];
   if (roiSamples.length < expectedRoi) flags.push("missing_roi_samples");
   if (backgroundSamples.length < expectedBackground) flags.push("missing_background_samples");
   if (backgroundSamples.length < 12) flags.push("small_background_sample");
   if (backgroundMad > 2) flags.push("noisy_background_surface");
   if (roiMad > 2) flags.push("variable_roi_surface");
+  if (removedBackgroundOutliers) flags.push("background_outliers_trimmed");
+  if (planeTiltDeg > 30) flags.push("steep_surface_angle");
+  if (roiCoverage < 0.8) flags.push("low_roi_coverage");
+  if (backgroundCoverage < 0.8) flags.push("low_background_coverage");
   let quality = 1;
   quality -= Math.min(0.35, 0.35 * (expectedRoi - roiSamples.length) / Math.max(1, expectedRoi));
   quality -= Math.min(0.25, 0.25 * (expectedBackground - backgroundSamples.length) / Math.max(1, expectedBackground));
   if (backgroundSamples.length < 12) quality -= 0.2;
   if (backgroundMad > 2) quality -= 0.15;
   if (roiMad > 2) quality -= 0.15;
+  if (roiCoverage < 0.8) quality -= 0.1;
+  if (backgroundCoverage < 0.8) quality -= 0.1;
   return {
     capture_id: payload.capture_id || currentCaptureId(),
     captured_at: payload.captured_at || new Date().toISOString(),
@@ -188,6 +215,7 @@ function analysePayload(payload) {
     accuracy_tier: payload.accuracy_tier || (payload.sensor_mode === "professional_lidar" ? "high" : "low"),
     source_label: payload.source_label || (payload.sensor_mode === "professional_lidar" ? "Professional LiDAR" : "Phone / laptop camera estimate"),
     roi: { x0, y0, x1, y1, ring_width_px: ringWidth },
+    coverage: { roi_fraction: Math.min(1, roiCoverage), background_fraction: Math.min(1, backgroundCoverage) },
     measurements: {
       median_depth_offset_mm: medianOffset,
       p95_depth_offset_mm: percentile(offsets, 95),
@@ -198,11 +226,15 @@ function analysePayload(payload) {
       background_median_depth_mm: backgroundMedian,
       background_mad_mm: backgroundMad,
       roi_residual_mad_mm: roiMad,
+      background_outliers_trimmed: removedBackgroundOutliers,
+      plane_tilt_deg: planeTiltDeg,
+      repeatability_proxy_mm: repeatabilityProxy,
     },
     quality: {
       engineering_quality_score: Math.max(0, Math.min(1, Number(quality.toFixed(3)))),
       flags: payload.sensor_mode === "camera" ? [...flags, "operator_estimate_not_sensor_depth"] : flags,
       score_definition: "heuristic data-quality indicator; not clinical confidence",
+      accuracy_note: payload.sensor_mode === "camera" ? "Manual estimate; RGB camera pixels are not sensor depth." : "Calibrated depth-grid route; validate sensor calibration and pose.",
     },
     calibration: { pixel_size_x_mm: spacingX, pixel_size_y_mm: spacingY },
   };
@@ -280,7 +312,7 @@ function renderMetrics() {
   }
   const metrics = state.analysis.measurements;
   const quality = state.analysis.quality.engineering_quality_score;
-  grid.innerHTML = `<div class="metric-card"><span>Depth offset</span><strong>${format(metrics.median_depth_offset_mm)}<small> mm</small></strong><small>median · plane-relative</small></div><div class="metric-card"><span>Estimated volume</span><strong>${format(metrics.estimated_positive_volume_mm3)}<small> mm³</small></strong><small>positive residual approximation</small></div><div class="metric-card"><span>Surface area</span><strong>${format(metrics.projected_area_mm2)}<small> mm²</small></strong><small>projected ROI</small></div><div class="metric-card"><span>${state.analysis.accuracy_tier === "high" ? "High-accuracy route" : "Lower-accuracy route"}</span><strong>${Math.round(quality * 100)}<small> / 100</small></strong><small>${escapeHtml(state.analysis.source_label)}</small></div>`;
+  grid.innerHTML = `<div class="metric-card"><span>Depth offset</span><strong>${format(metrics.median_depth_offset_mm)}<small> mm</small></strong><small>median · plane-relative</small></div><div class="metric-card"><span>Estimated volume</span><strong>${format(metrics.estimated_positive_volume_mm3)}<small> mm³</small></strong><small>positive residual approximation</small></div><div class="metric-card"><span>Surface area</span><strong>${format(metrics.projected_area_mm2)}<small> mm²</small></strong><small>projected ROI</small></div><div class="metric-card"><span>${state.analysis.accuracy_tier === "high" ? "LiDAR route" : "Camera route"}</span><strong>${Math.round(quality * 100)}<small> / 100</small></strong><small>${escapeHtml(state.analysis.source_label)}</small></div>`;
 }
 
 function matchingRecords() {
@@ -340,6 +372,11 @@ function setCurrentPayload(payload, sourceLabel) {
   $("saveRecord").disabled = false;
   $("downloadRecord").disabled = false;
   $("analysisMessage").textContent = "The values below are geometry measurements. They are not a clinical wound score.";
+  const flags = state.analysis.quality.flags.length ? ` Flags: ${state.analysis.quality.flags.join(", ")}.` : "";
+  const repeatability = state.analysis.accuracy_tier === "high" && Number.isFinite(Number(state.analysis.measurements.repeatability_proxy_mm))
+    ? ` Repeatability proxy: ±${format(state.analysis.measurements.repeatability_proxy_mm, 2)} mm.`
+    : "";
+  $("measurementNote").textContent = `${state.analysis.quality.accuracy_note || "Quality is an engineering indicator; it is not clinical confidence."}${repeatability}${flags}`;
   renderMetrics();
   renderTrend();
 }

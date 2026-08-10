@@ -134,7 +134,7 @@ def _samples(
     return result
 
 
-def _fit_plane(samples: Sequence[tuple[float, float, float]]) -> tuple[float, float, float]:
+def _fit_plane_least_squares(samples: Sequence[tuple[float, float, float]]) -> tuple[float, float, float]:
     if len(samples) < 3:
         raise DepthGridError("at least three valid background samples are required")
     mean_x = sum(x for x, _, _ in samples) / len(samples)
@@ -157,6 +157,37 @@ def _fit_plane(samples: Sequence[tuple[float, float, float]]) -> tuple[float, fl
     slope_y = (syz * sxx - sxz * sxy) / determinant
     intercept = mean_z - slope_x * mean_x - slope_y * mean_y
     return slope_x, slope_y, intercept
+
+
+def _fit_plane_robust(
+    samples: Sequence[tuple[float, float, float]],
+    max_iterations: int = 3,
+) -> tuple[tuple[float, float, float], int]:
+    """Fit a plane while trimming large background residuals.
+
+    A wound-adjacent ring can contain occlusions or isolated sensor spikes.
+    Trimming is deterministic and bounded; it is a quality aid, not a
+    substitute for calibration or a validated registration method.
+    """
+
+    active = list(samples)
+    removed = 0
+    for _ in range(max_iterations):
+        plane = _fit_plane_least_squares(active)
+        residuals = [z - (plane[0] * x + plane[1] * y + plane[2]) for x, y, z in active]
+        centre = _median(residuals)
+        spread = _mad(residuals, centre)
+        threshold = max(1.0, 3.0 * 1.4826 * spread)
+        inliers = [
+            sample
+            for sample, residual in zip(active, residuals)
+            if abs(residual - centre) <= threshold
+        ]
+        if len(inliers) < 3 or len(inliers) == len(active):
+            return plane, removed
+        removed += len(active) - len(inliers)
+        active = inliers
+    return _fit_plane_least_squares(active), removed
 
 
 def analyze_depth_frame(
@@ -182,7 +213,7 @@ def analyze_depth_frame(
         raise DepthGridError("at least four valid ROI samples are required")
     if len(background_samples) < 3:
         raise DepthGridError("at least three valid background samples are required")
-    slope_x, slope_y, intercept = _fit_plane(background_samples)
+    (slope_x, slope_y, intercept), removed_background_outliers = _fit_plane_robust(background_samples)
 
     offsets = [z - (slope_x * x + slope_y * y + intercept) for x, y, z in roi_samples]
     median_offset = _median(offsets)
@@ -191,6 +222,10 @@ def analyze_depth_frame(
     background_median = _median(background_values)
     background_mad = _mad(background_values, background_median)
     residual_mad = _mad(offsets, median_offset)
+    roi_coverage = len(roi_samples) / max(1, expected_roi)
+    background_coverage = len(background_samples) / max(1, expected_background)
+    plane_tilt_deg = math.degrees(math.atan(math.hypot(slope_x, slope_y)))
+    repeatability_proxy = max(background_mad * 1.4826, residual_mad)
     flags: list[str] = []
     if len(roi_samples) < expected_roi:
         flags.append("missing_roi_samples")
@@ -202,6 +237,14 @@ def analyze_depth_frame(
         flags.append("noisy_background_surface")
     if residual_mad > 2.0:
         flags.append("variable_roi_surface")
+    if removed_background_outliers:
+        flags.append("background_outliers_trimmed")
+    if plane_tilt_deg > 30.0:
+        flags.append("steep_surface_angle")
+    if roi_coverage < 0.8:
+        flags.append("low_roi_coverage")
+    if background_coverage < 0.8:
+        flags.append("low_background_coverage")
     score = 1.0
     score -= min(0.35, 0.35 * (expected_roi - len(roi_samples)) / max(1, expected_roi))
     score -= min(0.25, 0.25 * (expected_background - len(background_samples)) / max(1, expected_background))
@@ -211,6 +254,10 @@ def analyze_depth_frame(
         score -= 0.15
     if residual_mad > 2.0:
         score -= 0.15
+    if roi_coverage < 0.8:
+        score -= 0.1
+    if background_coverage < 0.8:
+        score -= 0.1
     score = max(0.0, min(1.0, score))
     return {
         "capture_id": frame.capture_id,
@@ -218,6 +265,10 @@ def analyze_depth_frame(
         "frame_height_px": height,
         "valid_roi_samples": len(roi_samples),
         "valid_background_samples": len(background_samples),
+        "coverage": {
+            "roi_fraction": round(min(1.0, roi_coverage), 3),
+            "background_fraction": round(min(1.0, background_coverage), 3),
+        },
         "pixel_size_x_mm": px,
         "pixel_size_y_mm": py,
         "roi": {"x0": x0, "y0": y0, "x1": x1, "y1": y1, "ring_width_px": ring_width},
@@ -231,10 +282,14 @@ def analyze_depth_frame(
             "background_median_depth_mm": background_median,
             "background_mad_mm": background_mad,
             "roi_residual_mad_mm": residual_mad,
+            "background_outliers_trimmed": removed_background_outliers,
+            "plane_tilt_deg": plane_tilt_deg,
+            "repeatability_proxy_mm": repeatability_proxy,
         },
         "quality": {
             "engineering_quality_score": round(score, 3),
             "flags": flags,
             "score_definition": "heuristic data-quality indicator; not clinical confidence",
+            "accuracy_note": "Calibrated depth-grid route; validate sensor calibration and pose.",
         },
     }

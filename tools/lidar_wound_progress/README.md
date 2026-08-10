@@ -30,6 +30,7 @@ lidar_wound_progress/
   CONTRIBUTING.md           contribution and data rules
   SECURITY.md               privacy and vulnerability reporting boundary
   COMPLIANCE.md             research-only safeguards and deployment gates
+  OPEN_SOURCE_EXTENSIONS.md reviewed optional integration plan
   local_storage.py          local numeric-summary SQLite boundary
   local_service.py          optional loopback HTTP service
   ml/                       optional provenance-first ML adapter contracts
@@ -93,6 +94,11 @@ The current implementation intentionally uses operator-supplied ROIs. For a
 future clinical research version, add validated segmentation, pose
 standardization, anatomical registration, repeatability statistics, and a
 reference-method comparison before interpreting trajectory signals.
+
+The single-frame reviewer also reports ROI/background coverage, fitted-plane
+tilt, a robust background-outlier count, and a repeatability proxy based on
+surface variability. These are engineering review aids, not clinical accuracy
+or confidence estimates.
 
 ## Open-source licensing choice
 

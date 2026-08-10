@@ -22,6 +22,9 @@ was copied into this tool.
 These papers are evidence for what must be tested, not evidence that this
 prototype is clinically accurate. No clinical performance claim is made here.
 
+Optional integration candidates and their license/provenance boundaries are
+listed in [OPEN_SOURCE_EXTENSIONS.md](OPEN_SOURCE_EXTENSIONS.md).
+
 ## License references
 
 - [Apache License 2.0, Apache Software Foundation](https://www.apache.org/licenses/LICENSE-2.0.txt)

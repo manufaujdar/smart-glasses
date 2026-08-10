@@ -17,10 +17,20 @@ secure HTTPS deployment.
 The interface offers two routes:
 
 - **Phone/laptop camera** — lower accuracy. The camera is a visual reference;
-  the operator enters an approximate depth and area, and the app marks the
-  record as an operator estimate.
+  the operator enters an approximate depth and area. This is a manual estimate,
+  not depth inferred from RGB pixels.
 - **Professional LiDAR sensor** — higher accuracy. Import a calibrated JSON
   depth grid and use the plane-relative geometry engine.
+
+## What is functional versus simulated
+
+- Functional: camera preview and in-memory still capture, calibrated depth JSON
+  import, deterministic plane-relative depth/area/volume calculations, local
+  history, longitudinal geometry signals, and optional loopback SQLite storage.
+- Manual/simulated: the camera route does not infer depth from pixels. Its depth
+  and area values are entered by the operator and converted into a clearly
+  labeled manual estimate. Automatic wound segmentation, pose registration,
+  and clinical scoring are not included.
 
 ## Important sensor limitation
 
@@ -43,10 +53,10 @@ Expected depth JSON:
 }
 ```
 
-Numeric records are stored in browser `localStorage` only. Captured images stay
-in memory and are not saved with the numeric history. This is not a clinical
-system and must not be used for diagnosis, treatment, triage, or recovery
-decisions.
+Numeric records use browser `localStorage` when the optional service is absent,
+or local SQLite when it is running. Captured images stay in memory and are not
+saved with numeric history. This is not a clinical system and must not be used
+for diagnosis, treatment, triage, or recovery decisions.
 
 ## Optional local SQLite service
 

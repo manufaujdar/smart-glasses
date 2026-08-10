@@ -1,443 +1,263 @@
 import { getWebXRDepthCapability } from "./depth-adapter.js";
 
-const STORAGE_KEY = "depthline.numeric-history.v1";
-const API_BASE = new URLSearchParams(window.location.search).get("api") || "http://127.0.0.1:8787/api";
+const HISTORY_KEY = "depthline.paired-photo-history.v1";
+const GRID_WIDTH = 160;
+const GRID_HEIGHT = 120;
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  depthPayload: null,
-  analysis: null,
-  cameraStream: null,
-  records: loadRecords(),
-  capturedImage: null,
-  sensorMode: "camera",
-  apiAvailable: false,
+  images: { baseline: null, followup: null },
+  result: null,
+  history: loadHistory(),
 };
 
-function loadRecords() {
+function loadHistory() {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(stored) ? stored.map((record) => ({ sensor_mode: "professional_lidar", accuracy_tier: "high", ...record })) : [];
+    const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(value) ? value : [];
   } catch {
     return [];
   }
 }
 
-function persistRecords() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.records));
-}
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history)); }
 
-async function initPersistence() {
-  try {
-    const response = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-    if (!response.ok) throw new Error("local service unavailable");
-    const recordsResponse = await fetch(`${API_BASE}/records`, { cache: "no-store" });
-    if (!recordsResponse.ok) throw new Error("local records unavailable");
-    const payload = await recordsResponse.json();
-    state.records = Array.isArray(payload.records) ? payload.records : [];
-    state.apiAvailable = true;
-    $("persistenceStatus").textContent = "Local SQLite service · no cloud upload";
-    renderTrend();
-  } catch {
-    $("persistenceStatus").textContent = "Browser-local history · no cloud upload";
-  }
-}
-
-async function saveToPersistence(record) {
-  if (!state.apiAvailable) {
-    state.records = [...state.records.filter((item) => !(item.wound_id === record.wound_id && item.capture_id === record.capture_id && item.sensor_mode === record.sensor_mode)), record];
-    persistRecords();
-    return record;
-  }
-  try {
-    const response = await fetch(`${API_BASE}/records`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(record) });
-    if (!response.ok) throw new Error("local service rejected the record");
-    const saved = await response.json();
-    state.records = [...state.records.filter((item) => item.record_id !== saved.record_id && !(item.wound_id === saved.wound_id && item.capture_id === saved.capture_id && item.sensor_mode === saved.sensor_mode)), saved];
-    return saved;
-  } catch {
-    state.apiAvailable = false;
-    $("persistenceStatus").textContent = "Local service unavailable · browser history active";
-    state.records = [...state.records.filter((item) => !(item.wound_id === record.wound_id && item.capture_id === record.capture_id && item.sensor_mode === record.sensor_mode)), record];
-    persistRecords();
-    return record;
-  }
-}
-
-function currentWoundId() {
-  return $("woundId")?.value.trim() || state.depthPayload?.wound_id || "local-demo-wound";
-}
-
-function currentCaptureId() {
-  return $("captureId")?.value.trim() || `browser-${Date.now()}`;
-}
-
-function finitePositive(value) {
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : null;
-}
-
-function normaliseGrid(rawGrid) {
-  if (!Array.isArray(rawGrid) || rawGrid.length === 0 || !Array.isArray(rawGrid[0])) {
-    throw new Error("depth_mm must be a non-empty 2D array");
-  }
-  const width = rawGrid[0].length;
-  if (!width || rawGrid.some((row) => !Array.isArray(row) || row.length !== width)) {
-    throw new Error("depth_mm must be rectangular");
-  }
-  const grid = rawGrid.map((row) => row.map(finitePositive));
-  if (!grid.some((row) => row.some((value) => value !== null))) {
-    throw new Error("depth_mm contains no valid positive samples");
-  }
-  return grid;
-}
-
-function median(values) {
-  const ordered = [...values].sort((a, b) => a - b);
-  if (!ordered.length) throw new Error("No valid samples");
-  const middle = Math.floor(ordered.length / 2);
-  return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
-}
-
-function percentile(values, rank) {
-  const ordered = [...values].sort((a, b) => a - b);
-  const position = (ordered.length - 1) * rank / 100;
-  const low = Math.floor(position);
-  const high = Math.ceil(position);
-  if (low === high) return ordered[low];
-  return ordered[low] + (ordered[high] - ordered[low]) * (position - low);
-}
-
-function mad(values, centre) {
-  return median(values.map((value) => Math.abs(value - centre)));
-}
-
-function collectSamples(grid, roi, px, py, includeRoi, ringWidth) {
-  const [x0, y0, x1, y1] = roi;
-  const height = grid.length;
-  const width = grid[0].length;
-  const samples = [];
-  for (let row = Math.max(0, y0 - ringWidth); row < Math.min(height, y1 + ringWidth); row += 1) {
-    for (let column = Math.max(0, x0 - ringWidth); column < Math.min(width, x1 + ringWidth); column += 1) {
-      const inside = column >= x0 && column < x1 && row >= y0 && row < y1;
-      const value = grid[row][column];
-      if (inside === includeRoi && value !== null) samples.push([column * px, row * py, value]);
-    }
-  }
-  return samples;
-}
-
-function fitPlaneLeastSquares(samples) {
-  if (samples.length < 3) throw new Error("At least three valid background samples are required");
-  const meanX = samples.reduce((sum, sample) => sum + sample[0], 0) / samples.length;
-  const meanY = samples.reduce((sum, sample) => sum + sample[1], 0) / samples.length;
-  const meanZ = samples.reduce((sum, sample) => sum + sample[2], 0) / samples.length;
-  let sxx = 0; let syy = 0; let sxy = 0; let sxz = 0; let syz = 0;
-  samples.forEach(([x, y, z]) => {
-    const dx = x - meanX; const dy = y - meanY; const dz = z - meanZ;
-    sxx += dx * dx; syy += dy * dy; sxy += dx * dy; sxz += dx * dz; syz += dy * dz;
-  });
-  const determinant = sxx * syy - sxy * sxy;
-  if (Math.abs(determinant) < 1e-12) throw new Error("Background samples do not span a 2D surface");
-  const slopeX = (sxz * syy - syz * sxy) / determinant;
-  const slopeY = (syz * sxx - sxz * sxy) / determinant;
-  return { slopeX, slopeY, intercept: meanZ - slopeX * meanX - slopeY * meanY };
-}
-
-function fitPlaneRobust(samples) {
-  let active = [...samples];
-  let removed = 0;
-  for (let iteration = 0; iteration < 3; iteration += 1) {
-    const plane = fitPlaneLeastSquares(active);
-    const residuals = active.map(([x, y, z]) => z - (plane.slopeX * x + plane.slopeY * y + plane.intercept));
-    const centre = median(residuals);
-    const spread = mad(residuals, centre);
-    const threshold = Math.max(1, 3 * 1.4826 * spread);
-    const inliers = active.filter(([x, y, z]) => Math.abs((z - (plane.slopeX * x + plane.slopeY * y + plane.intercept)) - centre) <= threshold);
-    if (inliers.length < 3 || inliers.length === active.length) return { plane, removed };
-    removed += active.length - inliers.length;
-    active = inliers;
-  }
-  return { plane: fitPlaneLeastSquares(active), removed };
-}
-
-function analysePayload(payload) {
-  const grid = normaliseGrid(payload.depth_mm);
-  const [px, py] = payload.pixel_size_mm || [];
-  if (!Number.isFinite(Number(px)) || !Number.isFinite(Number(py)) || Number(px) <= 0 || Number(py) <= 0) {
-    throw new Error("pixel_size_mm must contain positive x and y calibration");
-  }
-  const spacingX = Number(px); const spacingY = Number(py);
-  const [x0, y0, x1, y1] = payload.roi || [];
-  const width = grid[0].length; const height = grid.length;
-  if (![x0, y0, x1, y1].every(Number.isInteger) || !(0 <= x0 && x0 < x1 && x1 <= width && 0 <= y0 && y0 < y1 && y1 <= height)) {
-    throw new Error("roi must fit inside the depth grid as x0 y0 x1 y1");
-  }
-  const ringWidth = Number.isInteger(payload.ring_width_px) && payload.ring_width_px > 0 ? payload.ring_width_px : 2;
-  const roiSamples = collectSamples(grid, [x0, y0, x1, y1], spacingX, spacingY, true, ringWidth);
-  const backgroundSamples = collectSamples(grid, [x0, y0, x1, y1], spacingX, spacingY, false, ringWidth);
-  if (roiSamples.length < 4 || backgroundSamples.length < 3) throw new Error("Not enough valid ROI/background samples");
-  const { plane, removed: removedBackgroundOutliers } = fitPlaneRobust(backgroundSamples);
-  const offsets = roiSamples.map(([x, y, z]) => z - (plane.slopeX * x + plane.slopeY * y + plane.intercept));
-  const positive = offsets.map((value) => Math.max(0, value));
-  const backgroundDepths = backgroundSamples.map((sample) => sample[2]);
-  const medianOffset = median(offsets);
-  const backgroundMedian = median(backgroundDepths);
-  const backgroundMad = mad(backgroundDepths, backgroundMedian);
-  const roiMad = mad(offsets, medianOffset);
-  const expectedRoi = (x1 - x0) * (y1 - y0);
-  const expectedBackground = ((x1 - x0) + (2 * ringWidth)) * ((y1 - y0) + (2 * ringWidth)) - expectedRoi;
-  const roiCoverage = roiSamples.length / Math.max(1, expectedRoi);
-  const backgroundCoverage = backgroundSamples.length / Math.max(1, expectedBackground);
-  const planeTiltDeg = Math.atan(Math.hypot(plane.slopeX, plane.slopeY)) * 180 / Math.PI;
-  const repeatabilityProxy = Math.max(backgroundMad * 1.4826, roiMad);
-  const flags = [];
-  if (roiSamples.length < expectedRoi) flags.push("missing_roi_samples");
-  if (backgroundSamples.length < expectedBackground) flags.push("missing_background_samples");
-  if (backgroundSamples.length < 12) flags.push("small_background_sample");
-  if (backgroundMad > 2) flags.push("noisy_background_surface");
-  if (roiMad > 2) flags.push("variable_roi_surface");
-  if (removedBackgroundOutliers) flags.push("background_outliers_trimmed");
-  if (planeTiltDeg > 30) flags.push("steep_surface_angle");
-  if (roiCoverage < 0.8) flags.push("low_roi_coverage");
-  if (backgroundCoverage < 0.8) flags.push("low_background_coverage");
-  let quality = 1;
-  quality -= Math.min(0.35, 0.35 * (expectedRoi - roiSamples.length) / Math.max(1, expectedRoi));
-  quality -= Math.min(0.25, 0.25 * (expectedBackground - backgroundSamples.length) / Math.max(1, expectedBackground));
-  if (backgroundSamples.length < 12) quality -= 0.2;
-  if (backgroundMad > 2) quality -= 0.15;
-  if (roiMad > 2) quality -= 0.15;
-  if (roiCoverage < 0.8) quality -= 0.1;
-  if (backgroundCoverage < 0.8) quality -= 0.1;
-  return {
-    capture_id: payload.capture_id || currentCaptureId(),
-    captured_at: payload.captured_at || new Date().toISOString(),
-    wound_id: payload.wound_id || currentWoundId(),
-    sensor_mode: payload.sensor_mode || state.sensorMode,
-    accuracy_tier: payload.accuracy_tier || (payload.sensor_mode === "professional_lidar" ? "high" : "low"),
-    source_label: payload.source_label || (payload.sensor_mode === "professional_lidar" ? "Professional LiDAR" : "Phone / laptop camera estimate"),
-    roi: { x0, y0, x1, y1, ring_width_px: ringWidth },
-    coverage: { roi_fraction: Math.min(1, roiCoverage), background_fraction: Math.min(1, backgroundCoverage) },
-    measurements: {
-      median_depth_offset_mm: medianOffset,
-      p95_depth_offset_mm: percentile(offsets, 95),
-      maximum_depth_offset_mm: Math.max(...offsets),
-      mean_positive_depth_offset_mm: positive.reduce((sum, value) => sum + value, 0) / positive.length,
-      projected_area_mm2: roiSamples.length * spacingX * spacingY,
-      estimated_positive_volume_mm3: positive.reduce((sum, value) => sum + value, 0) * spacingX * spacingY,
-      background_median_depth_mm: backgroundMedian,
-      background_mad_mm: backgroundMad,
-      roi_residual_mad_mm: roiMad,
-      background_outliers_trimmed: removedBackgroundOutliers,
-      plane_tilt_deg: planeTiltDeg,
-      repeatability_proxy_mm: repeatabilityProxy,
-    },
-    quality: {
-      engineering_quality_score: Math.max(0, Math.min(1, Number(quality.toFixed(3)))),
-      flags: payload.sensor_mode === "camera" ? [...flags, "operator_estimate_not_sensor_depth"] : flags,
-      score_definition: "heuristic data-quality indicator; not clinical confidence",
-      accuracy_note: payload.sensor_mode === "camera" ? "Manual estimate; RGB camera pixels are not sensor depth." : "Calibrated depth-grid route; validate sensor calibration and pose.",
-    },
-    calibration: { pixel_size_x_mm: spacingX, pixel_size_y_mm: spacingY },
-  };
-}
-
-function syntheticPayload() {
-  const grid = Array.from({ length: 16 }, (_, row) => Array.from({ length: 16 }, (_, column) => {
-    return row >= 5 && row < 9 && column >= 6 && column < 10 ? 24 : 20;
-  }));
-  return { wound_id: "synthetic-demo-wound", capture_id: "synthetic-visit-1", captured_at: new Date().toISOString(), sensor_mode: "professional_lidar", accuracy_tier: "high", source_label: "Synthetic professional LiDAR", pixel_size_mm: [0.8, 0.8], roi: [6, 5, 10, 9], depth_mm: grid };
-}
-
-function cameraEstimatePayload() {
-  const depth = Number($("approxDepthMm").value);
-  const area = Number($("approxAreaMm2").value);
-  if (!Number.isFinite(depth) || depth <= 0 || depth > 100) throw new Error("Enter an approximate depth between 0.1 and 100 mm");
-  if (!Number.isFinite(area) || area <= 0 || area > 100000) throw new Error("Enter an approximate area between 1 and 100,000 mm²");
-  const pixelSize = Math.sqrt(area) / 4;
-  const grid = Array.from({ length: 8 }, (_, row) => Array.from({ length: 8 }, (_, column) => {
-    return row >= 2 && row < 6 && column >= 2 && column < 6 ? 20 + depth : 20;
-  }));
-  return {
-    wound_id: currentWoundId(), capture_id: currentCaptureId(), captured_at: new Date().toISOString(),
-    sensor_mode: "camera", accuracy_tier: "low", source_label: "Phone / laptop camera estimate",
-    pixel_size_mm: [pixelSize, pixelSize], roi: [2, 2, 6, 6], depth_mm: grid,
-  };
+function numberValue(id, fallback = null) {
+  const value = Number($(id).value);
+  return Number.isFinite(value) ? value : fallback;
 }
 
 function format(value, digits = 1) { return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "—"; }
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (!sorted.length) return 0;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function setStatus(element, label, neutral = false) {
-  element.textContent = label;
-  element.classList.toggle("neutral", neutral);
-}
+function mad(values, centre) { return median(values.map((value) => Math.abs(value - centre))); }
 
-function updateSensorUI() {
-  const cameraSelected = state.sensorMode === "camera";
-  $("cameraOption").classList.toggle("selected", cameraSelected);
-  $("lidarOption").classList.toggle("selected", !cameraSelected);
-  $("cameraEstimateControls").hidden = !cameraSelected;
-  $("dropZone").style.opacity = cameraSelected ? "0.55" : "1";
-  $("sensorMessage").textContent = cameraSelected
-    ? "Camera mode does not infer millimetres from RGB pixels. Enter an operator estimate after capturing a visual reference."
-    : "Professional LiDAR mode expects calibrated depth JSON and blocks comparisons against camera-estimate records.";
-}
-
-async function updateDepthApiStatus() {
-  const status = $("depthApiStatus");
-  if (!status) return;
-  const capability = await getWebXRDepthCapability();
-  status.textContent = capability.supported ? "WebXR depth available · native route recommended" : "Browser depth API unavailable · use native export";
-  status.title = capability.reason;
-  status.classList.toggle("available", capability.supported);
-}
-
-function setSensorMode(mode) {
-  if (!new Set(["camera", "professional_lidar"]).has(mode)) return;
-  const changed = state.sensorMode !== mode;
-  state.sensorMode = mode;
-  if (changed && state.analysis) {
-    state.depthPayload = null;
-    state.analysis = null;
-    $("fileSummary").hidden = true;
-    $("reviewBadge").textContent = "No frame loaded";
-    $("saveRecord").disabled = true;
-    $("downloadRecord").disabled = true;
-    $("analysisMessage").textContent = "Load a new frame for the selected measurement route.";
-    setStatus($("depthStatus"), "Waiting", true);
+function roiConfig() {
+  const roi = { x: numberValue("roiX", 20), y: numberValue("roiY", 20), width: numberValue("roiWidth", 60), height: numberValue("roiHeight", 60) };
+  if (![roi.x, roi.y, roi.width, roi.height].every(Number.isFinite) || roi.x < 0 || roi.y < 0 || roi.width < 10 || roi.height < 10 || roi.x + roi.width > 100 || roi.y + roi.height > 100) {
+    throw new Error("The wound region must fit inside the photo and be at least 10% wide and high.");
   }
-  updateSensorUI();
-  renderMetrics();
-  renderTrend();
+  return roi;
 }
 
-function renderMetrics() {
-  const grid = $("metricGrid");
-  if (!state.analysis) {
-    grid.innerHTML = `<div class="metric-card empty-metric"><span>Depth offset</span><strong>—</strong><small>mm · plane-relative</small></div><div class="metric-card empty-metric"><span>Estimated volume</span><strong>—</strong><small>mm³ · approximation</small></div><div class="metric-card empty-metric"><span>Surface area</span><strong>—</strong><small>mm² · projected ROI</small></div><div class="metric-card empty-metric"><span>Data quality</span><strong>—</strong><small>engineering indicator</small></div>`;
+function createImageBitmapFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => { resolve({ image, src: url, name: file.name, width: image.naturalWidth, height: image.naturalHeight }); };
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("The selected image could not be read.")); };
+    image.src = url;
+  });
+}
+
+function drawPhotoPreview(kind) {
+  const entry = state.images[kind];
+  const preview = $(`${kind}Preview`);
+  const empty = $(`${kind}Empty`);
+  const stateLabel = $(`${kind}State`);
+  if (!entry) {
+    preview.hidden = true; empty.hidden = false; stateLabel.textContent = "Waiting"; stateLabel.classList.remove("ready");
     return;
   }
-  const metrics = state.analysis.measurements;
-  const quality = state.analysis.quality.engineering_quality_score;
-  grid.innerHTML = `<div class="metric-card"><span>Depth offset</span><strong>${format(metrics.median_depth_offset_mm)}<small> mm</small></strong><small>median · plane-relative</small></div><div class="metric-card"><span>Estimated volume</span><strong>${format(metrics.estimated_positive_volume_mm3)}<small> mm³</small></strong><small>positive residual approximation</small></div><div class="metric-card"><span>Surface area</span><strong>${format(metrics.projected_area_mm2)}<small> mm²</small></strong><small>projected ROI</small></div><div class="metric-card"><span>${state.analysis.accuracy_tier === "high" ? "LiDAR route" : "Camera route"}</span><strong>${Math.round(quality * 100)}<small> / 100</small></strong><small>${escapeHtml(state.analysis.source_label)}</small></div>`;
+  preview.src = entry.src;
+  preview.hidden = false; empty.hidden = true; stateLabel.textContent = "Ready"; stateLabel.classList.add("ready");
+  $(`${kind}Meta`).textContent = `${entry.name} · ${entry.width}×${entry.height}px · kept in memory only`;
 }
 
-function matchingRecords() {
-  const woundId = state.analysis?.wound_id || state.depthPayload?.wound_id || "local-demo-wound";
-  const sensorMode = state.analysis?.sensor_mode || state.sensorMode;
-  return state.records.filter((record) => record.wound_id === woundId && record.sensor_mode === sensorMode).sort((a, b) => new Date(a.captured_at) - new Date(b.captured_at));
-}
-
-function allMatchingWoundRecords() {
-  const woundId = state.analysis?.wound_id || state.depthPayload?.wound_id || currentWoundId();
-  return state.records.filter((record) => record.wound_id === woundId);
-}
-
-function renderTrend() {
-  const records = matchingRecords();
-  const allWoundRecords = allMatchingWoundRecords();
-  const current = state.analysis;
-  $("historyList").innerHTML = records.length ? records.map((record) => `<div class="history-item"><span>${new Date(record.captured_at).toLocaleDateString()} · ${escapeHtml(record.capture_id)}</span><strong>${format(record.measurements.estimated_positive_volume_mm3)} mm³</strong></div>`).join("") : "";
-  if (!current) {
-    $("trendDisplay").innerHTML = `<span class="trend-kicker">Baseline needed</span><strong>—</strong><p>Load a depth frame to review local history.</p>`;
-    $("trendDetail").textContent = records.length ? `${records.length} local record${records.length === 1 ? "" : "s"} found for this wound key.` : "No records are stored yet. History uses local browser storage only.";
-    return;
+async function loadPhoto(kind, file) {
+  try {
+    if (state.images[kind]?.src) URL.revokeObjectURL(state.images[kind].src);
+    state.images[kind] = await createImageBitmapFromFile(file);
+    drawPhotoPreview(kind);
+    updateForm();
+  } catch (error) {
+    $(`${kind}Meta`).textContent = error.message;
   }
-  if (!records.length) {
-    $("trendDisplay").innerHTML = `<span class="trend-kicker">Baseline needed</span><strong>New</strong><p>Save this numeric record, then compare a later frame on this device.</p>`;
-    $("trendDetail").textContent = allWoundRecords.length ? "Previous records exist for this wound key, but another sensor route was selected. Cross-sensor comparisons are blocked." : "No previous record matches this wound key.";
-    return;
+}
+
+function sampleImage(entry) {
+  const canvas = document.createElement("canvas");
+  canvas.width = GRID_WIDTH; canvas.height = GRID_HEIGHT;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(entry.image, 0, 0, GRID_WIDTH, GRID_HEIGHT);
+  const pixels = context.getImageData(0, 0, GRID_WIDTH, GRID_HEIGHT).data;
+  const grayscale = [];
+  let sum = 0; let sumSquared = 0;
+  for (let index = 0; index < pixels.length; index += 4) {
+    const r = pixels[index] / 255; const g = pixels[index + 1] / 255; const b = pixels[index + 2] / 255;
+    const value = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    grayscale.push(value); sum += value; sumSquared += value * value;
   }
-  const baseline = records[0];
-  const latest = current;
-  const baseVolume = baseline.measurements.estimated_positive_volume_mm3;
-  const volume = latest.measurements.estimated_positive_volume_mm3;
-  const changePct = baseVolume > 0 ? ((volume - baseVolume) / baseVolume) * 100 : null;
-  const depthBase = baseline.measurements.median_depth_offset_mm;
-  const depthChange = Math.abs(depthBase) > 1e-9 ? ((latest.measurements.median_depth_offset_mm - depthBase) / Math.abs(depthBase)) * 100 : null;
-  const directions = [changePct, depthChange].map((value) => value === null ? "not_comparable" : value <= -5 ? "decreasing" : value >= 5 ? "increasing" : "stable");
-  const signal = latest.quality.engineering_quality_score < 0.6 ? "insufficient_quality" : directions.filter((value) => value === "decreasing").length === 2 ? "decreasing_geometry" : directions.filter((value) => value === "increasing").length === 2 ? "increasing_geometry" : "stable_or_mixed_geometry";
-  const changeIndex = baseVolume > 0 ? Math.max(-100, Math.min(100, 100 * (1 - volume / baseVolume))) : null;
-  const signalLabel = { decreasing_geometry: "Decreasing geometry", increasing_geometry: "Increasing geometry", stable_or_mixed_geometry: "Stable / mixed", insufficient_quality: "Insufficient quality" }[signal];
-  $("trendDisplay").innerHTML = `<span class="trend-kicker">Geometry signal</span><strong>${signalLabel}</strong><p>Compared with ${new Date(baseline.captured_at).toLocaleDateString()} · ${escapeHtml(baseline.capture_id)}</p>`;
-  $("trendDetail").innerHTML = `<strong>${changeIndex === null ? "—" : `${changeIndex >= 0 ? "+" : ""}${format(changeIndex, 0)}`}</strong> change index · ${changePct === null ? "volume not comparable" : `${format(changePct, 1)}% volume change`} · not a clinical score.`;
+  const mean = sum / grayscale.length;
+  const contrast = Math.sqrt(Math.max(0, sumSquared / grayscale.length - mean * mean));
+  return { pixels, grayscale, mean, contrast };
 }
 
-function setCurrentPayload(payload, sourceLabel) {
-  state.depthPayload = payload;
-  state.analysis = analysePayload(payload);
-  state.sensorMode = state.analysis.sensor_mode;
-  document.querySelector(`input[name="sensorMode"][value="${state.sensorMode}"]`).checked = true;
-  updateSensorUI();
-  $("woundId").value = state.analysis.wound_id;
-  $("captureId").value = state.analysis.capture_id;
-  setStatus($("depthStatus"), "Loaded");
-  $("fileSummary").hidden = false;
-  $("fileSummary").textContent = `${sourceLabel} · ${state.analysis.frame_width_px || payload.depth_mm[0].length}×${state.analysis.frame_height_px || payload.depth_mm.length} grid`;
-  $("depthMessage").textContent = "Frame loaded locally. Review the ROI and calibration before saving a numeric record.";
-  $("reviewBadge").textContent = "Ready for review";
-  $("saveRecord").disabled = false;
-  $("downloadRecord").disabled = false;
-  $("analysisMessage").textContent = "The values below are geometry measurements. They are not a clinical wound score.";
-  const flags = state.analysis.quality.flags.length ? ` Flags: ${state.analysis.quality.flags.join(", ")}.` : "";
-  const repeatability = state.analysis.accuracy_tier === "high" && Number.isFinite(Number(state.analysis.measurements.repeatability_proxy_mm))
-    ? ` Repeatability proxy: ±${format(state.analysis.measurements.repeatability_proxy_mm, 2)} mm.`
-    : "";
-  $("measurementNote").textContent = `${state.analysis.quality.accuracy_note || "Quality is an engineering indicator; it is not clinical confidence."}${repeatability}${flags}`;
-  renderMetrics();
-  renderTrend();
+function normalizedRgb(r, g, b) {
+  const total = r + g + b || 1;
+  return [r / total, g / total, b / total];
 }
 
-function downloadCurrent() {
-  const blob = new Blob([JSON.stringify({ ...state.depthPayload, analysis: state.analysis }, null, 2)], { type: "application/json" });
-  const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${state.analysis.capture_id}-depthline.json`; link.click(); URL.revokeObjectURL(link.href);
+function pixelDistance(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); }
+
+function segmentPhoto(entry, roi, sensitivity) {
+  const sample = sampleImage(entry);
+  const x0 = Math.floor(roi.x / 100 * GRID_WIDTH); const y0 = Math.floor(roi.y / 100 * GRID_HEIGHT);
+  const x1 = Math.min(GRID_WIDTH, Math.ceil((roi.x + roi.width) / 100 * GRID_WIDTH)); const y1 = Math.min(GRID_HEIGHT, Math.ceil((roi.y + roi.height) / 100 * GRID_HEIGHT));
+  const ring = Math.max(2, Math.round(Math.min(x1 - x0, y1 - y0) * 0.12));
+  const background = []; const backgroundLuma = [];
+  for (let y = Math.max(0, y0 - ring); y < Math.min(GRID_HEIGHT, y1 + ring); y += 1) {
+    for (let x = Math.max(0, x0 - ring); x < Math.min(GRID_WIDTH, x1 + ring); x += 1) {
+      if (x >= x0 && x < x1 && y >= y0 && y < y1) continue;
+      const index = (y * GRID_WIDTH + x) * 4;
+      const rgb = normalizedRgb(sample.pixels[index], sample.pixels[index + 1], sample.pixels[index + 2]);
+      background.push(rgb); backgroundLuma.push(sample.grayscale[y * GRID_WIDTH + x]);
+    }
+  }
+  if (background.length < 8) throw new Error("The wound region needs a larger periwound border.");
+  const reference = [0, 1, 2].map((channel) => median(background.map((rgb) => rgb[channel])));
+  const referenceLuma = median(backgroundLuma);
+  const backgroundDistances = background.map((rgb, index) => pixelDistance(rgb, reference) * 1.6 + Math.abs(backgroundLuma[index] - referenceLuma) * .8);
+  const threshold = Math.max(.035, median(backgroundDistances) + sensitivity * Math.max(.012, 1.4826 * mad(backgroundDistances, median(backgroundDistances))));
+  const rawMask = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
+  for (let y = y0; y < y1; y += 1) {
+    for (let x = x0; x < x1; x += 1) {
+      const index = (y * GRID_WIDTH + x) * 4;
+      const rgb = normalizedRgb(sample.pixels[index], sample.pixels[index + 1], sample.pixels[index + 2]);
+      const luma = sample.grayscale[y * GRID_WIDTH + x];
+      const distance = pixelDistance(rgb, reference) * 1.6 + Math.abs(luma - referenceLuma) * .8;
+      rawMask[y][x] = distance > threshold;
+    }
+  }
+  const mask = keepLargestComponent(rawMask, x0, y0, x1, y1);
+  const scale = numberValue(entry === state.images.baseline ? "baselineMarkerPx" : "followupMarkerPx", 0);
+  const markerWidth = numberValue("markerWidthMm", 25);
+  const mmPerPixel = scale > 0 && markerWidth > 0 ? markerWidth / scale : null;
+  const metricScale = mmPerPixel ? [mmPerPixel * entry.width / GRID_WIDTH, mmPerPixel * entry.height / GRID_HEIGHT] : [1, 1];
+  return { ...sample, mask, roi: { x0, y0, x1, y1 }, threshold, metricScale, mmPerPixel, colorFractions: colorFractions(sample, mask) };
 }
 
-async function saveCurrent() {
-  if (!state.analysis) return;
-  const record = { wound_id: state.analysis.wound_id, capture_id: state.analysis.capture_id, captured_at: state.analysis.captured_at, sensor_mode: state.analysis.sensor_mode, accuracy_tier: state.analysis.accuracy_tier, measurements: state.analysis.measurements, quality: state.analysis.quality };
-  await saveToPersistence(record);
-  renderTrend(); $("analysisMessage").textContent = state.apiAvailable ? "Numeric record saved to the loopback SQLite service. The captured image was not stored." : "Numeric record saved only in this browser. The captured image was not stored.";
+function keepLargestComponent(mask, x0, y0, x1, y1) {
+  const visited = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
+  const components = [];
+  for (let y = y0; y < y1; y += 1) for (let x = x0; x < x1; x += 1) {
+    if (!mask[y][x] || visited[y][x]) continue;
+    const queue = [[x, y]]; const points = []; visited[y][x] = true;
+    while (queue.length) {
+      const [cx, cy] = queue.pop(); points.push([cx, cy]);
+      [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]].forEach(([nx, ny]) => {
+        if (nx >= x0 && nx < x1 && ny >= y0 && ny < y1 && mask[ny][nx] && !visited[ny][nx]) { visited[ny][nx] = true; queue.push([nx, ny]); }
+      });
+    }
+    components.push(points);
+  }
+  const minimum = Math.max(4, Math.floor((x1 - x0) * (y1 - y0) * .003));
+  const largest = components.filter((component) => component.length >= minimum).sort((a, b) => b.length - a.length)[0] || [];
+  const result = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(false));
+  largest.forEach(([x, y]) => { result[y][x] = true; });
+  return result;
 }
 
-async function startCamera() {
-  if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not expose camera access.");
-  state.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
-  $("cameraPreview").srcObject = state.cameraStream; $("cameraPlaceholder").hidden = true;
-  $("captureStill").disabled = false; $("stopCamera").disabled = false; setStatus($("cameraStatus"), "Live"); $("cameraMessage").textContent = "Visual reference is live locally. It will not be added to the numeric history.";
+function maskMetrics(mask, metricScale) {
+  const [px, py] = metricScale; const points = []; const pointSet = new Set();
+  mask.forEach((row, y) => row.forEach((value, x) => { if (value) { points.push([x, y]); pointSet.add(`${x},${y}`); } }));
+  let perimeter = 0;
+  points.forEach(([x, y]) => { if (!pointSet.has(`${x - 1},${y}`)) perimeter += py; if (!pointSet.has(`${x + 1},${y}`)) perimeter += py; if (!pointSet.has(`${x},${y - 1}`)) perimeter += px; if (!pointSet.has(`${x},${y + 1}`)) perimeter += px; });
+  if (!points.length) return { areaPx: 0, areaMm2: 0, perimeterMm: 0, longestMm: 0, widestMm: 0, circularity: null };
+  const width = (Math.max(...points.map(([x]) => x)) - Math.min(...points.map(([x]) => x)) + 1) * px;
+  const height = (Math.max(...points.map(([, y]) => y)) - Math.min(...points.map(([, y]) => y)) + 1) * py;
+  const area = points.length * px * py;
+  return { areaPx: points.length, areaMm2: area, perimeterMm: perimeter, longestMm: Math.max(width, height), widestMm: Math.min(width, height), circularity: perimeter ? 4 * Math.PI * area / (perimeter * perimeter) : null };
 }
 
-function captureStill() {
-  const video = $("cameraPreview"); const canvas = $("cameraCanvas");
-  if (!video.videoWidth) return;
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight; canvas.getContext("2d").drawImage(video, 0, 0);
-  state.capturedImage = canvas.toDataURL("image/jpeg", 0.88); $("capturedStill").src = state.capturedImage; $("capturedStill").hidden = false;
-  $("cameraMessage").textContent = "Still captured in memory for visual reference only; it is not persisted.";
+function colorFractions(sample, mask) {
+  const counts = { red: 0, yellow: 0, dark: 0, other: 0 }; let total = 0;
+  mask.forEach((row, y) => row.forEach((value, x) => { if (!value) return; const index = (y * GRID_WIDTH + x) * 4; const r = sample.pixels[index] / 255; const g = sample.pixels[index + 1] / 255; const b = sample.pixels[index + 2] / 255; const luma = sample.grayscale[y * GRID_WIDTH + x]; total += 1; if (luma < .22) counts.dark += 1; else if (r > g * 1.18 && r > b * 1.18) counts.red += 1; else if (r > b * 1.15 && g > b * 1.15) counts.yellow += 1; else counts.other += 1; }));
+  return Object.fromEntries(Object.entries(counts).map(([key, value]) => [key, total ? value / total : 0]));
 }
 
-function stopCamera() {
-  state.cameraStream?.getTracks().forEach((track) => track.stop()); state.cameraStream = null; $("cameraPreview").srcObject = null; $("cameraPlaceholder").hidden = false; $("captureStill").disabled = true; $("stopCamera").disabled = true; setStatus($("cameraStatus"), "Off");
+function imageSignal(first, second, roi) {
+  const a = []; const b = [];
+  for (let y = Math.floor(roi.y / 100 * GRID_HEIGHT); y < Math.ceil((roi.y + roi.height) / 100 * GRID_HEIGHT); y += 1) for (let x = Math.floor(roi.x / 100 * GRID_WIDTH); x < Math.ceil((roi.x + roi.width) / 100 * GRID_WIDTH); x += 1) { a.push(first.grayscale[y * GRID_WIDTH + x]); b.push(second.grayscale[y * GRID_WIDTH + x]); }
+  const meanA = a.reduce((sum, value) => sum + value, 0) / a.length; const meanB = b.reduce((sum, value) => sum + value, 0) / b.length;
+  const varianceA = a.reduce((sum, value) => sum + (value - meanA) ** 2, 0) / Math.max(1, a.length - 1); const varianceB = b.reduce((sum, value) => sum + (value - meanB) ** 2, 0) / Math.max(1, b.length - 1);
+  const covariance = a.reduce((sum, value, index) => sum + (value - meanA) * (b[index] - meanB), 0) / Math.max(1, a.length - 1); const c1 = .0001; const c2 = .0009;
+  const denominator = (meanA ** 2 + meanB ** 2 + c1) * (varianceA + varianceB + c2); const ssim = denominator ? ((2 * meanA * meanB + c1) * (2 * covariance + c2)) / denominator : 1;
+  const difference = a.map((value, index) => Math.abs(value - b[index]));
+  return { ssim: Math.max(-1, Math.min(1, ssim)), meanAbsoluteDifference: difference.reduce((sum, value) => sum + value, 0) / difference.length, changedFraction: difference.filter((value) => value > .05).length / difference.length };
 }
 
-$("startCamera").addEventListener("click", () => startCamera().catch((error) => { $("cameraMessage").textContent = error.message; }));
-$("captureStill").addEventListener("click", captureStill);
-$("stopCamera").addEventListener("click", stopCamera);
-document.querySelectorAll('input[name="sensorMode"]').forEach((input) => input.addEventListener("change", () => setSensorMode(input.value)));
-$("buildCameraEstimate").addEventListener("click", () => { try { setCurrentPayload(cameraEstimatePayload(), "Camera-assisted estimate"); } catch (error) { $("analysisMessage").textContent = error.message; } });
-$("loadDemo").addEventListener("click", () => { setSensorMode("professional_lidar"); const payload = syntheticPayload(); setCurrentPayload(payload, "Synthetic demo"); });
-$("depthFile").addEventListener("change", (event) => {
-  const file = event.target.files?.[0]; if (!file) return;
-  const reader = new FileReader(); reader.onload = () => { try { const payload = JSON.parse(reader.result); payload.sensor_mode = "professional_lidar"; payload.accuracy_tier = "high"; payload.source_label = "Professional LiDAR depth JSON"; setCurrentPayload(payload, file.name); } catch (error) { $("depthMessage").textContent = `Could not load frame: ${error.message}`; setStatus($("depthStatus"), "Error", true); } }; reader.readAsText(file);
-});
-$("dropZone").addEventListener("dragover", (event) => { event.preventDefault(); $("dropZone").classList.add("dragging"); });
-$("dropZone").addEventListener("dragleave", () => $("dropZone").classList.remove("dragging"));
-$("dropZone").addEventListener("drop", (event) => { event.preventDefault(); $("dropZone").classList.remove("dragging"); const file = event.dataTransfer.files?.[0]; if (file) { $("depthFile").files = event.dataTransfer.files; $("depthFile").dispatchEvent(new Event("change")); } });
-$("saveRecord").addEventListener("click", saveCurrent);
-$("downloadRecord").addEventListener("click", downloadCurrent);
-$("clearHistory").addEventListener("click", async () => { if (!confirm("Clear numeric history from this device?")) return; if (state.apiAvailable) { await Promise.all(state.records.map((record) => fetch(`${API_BASE}/records/${record.record_id}`, { method: "DELETE" }).catch(() => null))); } state.records = []; persistRecords(); renderTrend(); });
+function qualityReport(first, second) {
+  const components = { scaleMarker: first.mmPerPixel && second.mmPerPixel ? 1 : 0, poseAlignment: $("samePose").checked ? 1 : 0, lightingConsistency: $("sameLighting").checked ? 1 : 0, segmentationReviewed: $("reviewedMask").checked ? 1 : 0, imageQuality: Math.min(imageQuality(first), imageQuality(second)) };
+  const score = Object.values(components).reduce((sum, value) => sum + value, 0) / Object.values(components).length;
+  const flags = []; if (!components.scaleMarker) flags.push("missing_scale_marker"); if (components.poseAlignment < .75) flags.push("pose_not_comparable"); if (components.lightingConsistency < .75) flags.push("lighting_not_comparable"); if (!components.segmentationReviewed) flags.push("segmentation_not_reviewed"); if (components.imageQuality < .6) flags.push("low_image_quality");
+  return { score, components, flags, usable: !flags.length && score >= .75 };
+}
 
-updateSensorUI(); renderMetrics(); renderTrend(); initPersistence(); updateDepthApiStatus();
+function imageQuality(sample) { return sample.mean > .06 && sample.mean < .94 && sample.contrast > .035 ? 1 : .45; }
+
+function comparePair() {
+  if (!state.images.baseline || !state.images.followup) throw new Error("Add both photos first.");
+  const roi = roiConfig(); const sensitivity = numberValue("sensitivity", 1); const first = segmentPhoto(state.images.baseline, roi, sensitivity); const second = segmentPhoto(state.images.followup, roi, sensitivity);
+  const firstMetrics = maskMetrics(first.mask, first.metricScale); const secondMetrics = maskMetrics(second.mask, second.metricScale); const areaReduction = firstMetrics.areaMm2 ? (firstMetrics.areaMm2 - secondMetrics.areaMm2) / firstMetrics.areaMm2 * 100 : null; const meanPerimeter = (firstMetrics.perimeterMm + secondMetrics.perimeterMm) / 2; const linearChange = meanPerimeter ? (firstMetrics.areaMm2 - secondMetrics.areaMm2) / meanPerimeter : null; const daysBetween = numberValue("daysBetween", null); const areaReductionPerWeekPercent = areaReduction !== null && daysBetween > 0 ? areaReduction * 7 / daysBetween : null;
+  const signal = imageSignal(first, second, roi); const quality = qualityReport(first, second); const tissue = { baseline: first.colorFractions, followup: second.colorFractions }; const result = { capturedAt: new Date().toISOString(), roi, baseline: { name: state.images.baseline.name, width: state.images.baseline.width, height: state.images.baseline.height, metrics: firstMetrics, colorFractions: first.colorFractions, mmPerPixel: first.mmPerPixel }, followup: { name: state.images.followup.name, width: state.images.followup.width, height: state.images.followup.height, metrics: secondMetrics, colorFractions: second.colorFractions, mmPerPixel: second.mmPerPixel }, change: { areaReductionMm2: firstMetrics.areaMm2 - secondMetrics.areaMm2, areaReductionPercent: areaReduction, areaReductionPerWeekPercent, perimeterPercent: firstMetrics.perimeterMm ? (secondMetrics.perimeterMm - firstMetrics.perimeterMm) / firstMetrics.perimeterMm * 100 : null, linearEdgeChangeMm: linearChange, daysBetween }, imageSignal: signal, quality, tissue, sensitivity };
+  state.result = result; renderResult(result, first, second); return result;
+}
+
+function renderResult(result, first, second) {
+  $("resultsSection").hidden = false; const usable = result.quality.usable; const area = result.change.areaReductionPercent; const stateLabel = $("resultState"); stateLabel.textContent = usable ? "Comparable with review" : "Review required"; stateLabel.classList.toggle("ready", usable);
+  $("summaryTitle").textContent = usable ? (area !== null && area >= 5 ? "Area is smaller in the later photo" : area !== null && area <= -5 ? "Area is larger in the later photo" : "No clear area change") : "The pair needs review before interpretation";
+  $("summaryText").textContent = usable ? "The calibrated photo measurements show a change in wound geometry. Confirm the outlines and interpret alongside the clinical assessment." : `The result is provisional because ${result.quality.flags.join(", ").replaceAll("_", " ")}.`;
+  $("areaReduction").textContent = result.change.areaReductionPercent === null ? "—" : `${result.change.areaReductionPercent >= 0 ? "−" : "+"}${format(Math.abs(result.change.areaReductionPercent), 1)}%`;
+  $("areaReductionUnit").textContent = result.baseline.metrics.areaMm2 ? `${format(result.change.areaReductionMm2, 1)} mm² baseline → later` : "outline not detected";
+  $("metricArea").textContent = `${format(result.baseline.metrics.areaMm2, 1)} → ${format(result.followup.metrics.areaMm2, 1)}`; $("metricAreaDetail").textContent = result.change.areaReductionPerWeekPercent === null ? "mm² · earlier → later" : `mm² · ${format(result.change.areaReductionPerWeekPercent, 1)}% / week`;
+  $("metricPerimeter").textContent = `${format(result.baseline.metrics.perimeterMm, 1)} → ${format(result.followup.metrics.perimeterMm, 1)} mm`; $("metricLongest").textContent = `${format(result.baseline.metrics.longestMm, 1)} → ${format(result.followup.metrics.longestMm, 1)} mm`; $("metricLinear").textContent = result.change.linearEdgeChangeMm === null ? "—" : `${result.change.linearEdgeChangeMm >= 0 ? "−" : "+"}${format(Math.abs(result.change.linearEdgeChangeMm), 1)} mm`;
+  $("ssimValue").textContent = format(result.imageSignal.ssim, 2); $("ssimDetail").textContent = format(result.imageSignal.ssim, 2); $("changedFraction").textContent = `${format(result.imageSignal.changedFraction * 100, 1)}%`; $("circularityDetail").textContent = `${format(result.baseline.metrics.circularity, 2)} → ${format(result.followup.metrics.circularity, 2)}`; $("colorMixDetail").textContent = `${format(result.baseline.colorFractions.red * 100, 0)}% red → ${format(result.followup.colorFractions.red * 100, 0)}%`; $("qualityScore").textContent = `${Math.round(result.quality.score * 100)} / 100`; $("qualityScore").classList.toggle("ready", usable);
+  $("qualityList").replaceChildren(...Object.entries(result.quality.components).map(([key, value]) => { const item = document.createElement("div"); item.className = `quality-item ${value < .75 ? "warn" : ""}`; const label = document.createElement("span"); label.textContent = key.replace(/([A-Z])/g, " $1"); const score = document.createElement("strong"); score.textContent = `${Math.round(value * 100)}%`; item.append(label, score); return item; }));
+  drawOverlay("baselineCanvas", state.images.baseline.image, first); drawOverlay("followupCanvas", state.images.followup.image, second); $("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function drawOverlay(canvasId, image, segmentation) {
+  const canvas = $(canvasId); const context = canvas.getContext("2d"); context.clearRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0, canvas.width, canvas.height); const cellWidth = canvas.width / GRID_WIDTH; const cellHeight = canvas.height / GRID_HEIGHT; context.fillStyle = "rgba(239, 118, 109, .36)"; context.strokeStyle = "rgba(255, 180, 170, .95)"; context.lineWidth = 1;
+  segmentation.mask.forEach((row, y) => row.forEach((value, x) => { if (value) context.fillRect(x * cellWidth, y * cellHeight, cellWidth + .5, cellHeight + .5); }));
+  context.strokeRect(segmentation.roi.x0 * cellWidth, segmentation.roi.y0 * cellHeight, (segmentation.roi.x1 - segmentation.roi.x0) * cellWidth, (segmentation.roi.y1 - segmentation.roi.y0) * cellHeight);
+}
+
+function updateForm() { $("comparePair").disabled = !(state.images.baseline && state.images.followup); $("formMessage").textContent = state.images.baseline && state.images.followup ? "Ready. Add scale pixels and review conditions, then compare." : "Add both photos to begin."; }
+
+function saveResult() {
+  if (!state.result) return; const record = { id: `pair-${Date.now()}`, captured_at: state.result.capturedAt, earlier_image: state.result.baseline.name, later_image: state.result.followup.name, change: state.result.change, image_signal: state.result.imageSignal, quality: state.result.quality, tissue: state.result.tissue, context: { exudate: $("exudate").value, tissue: $("tissueContext").value, periwound: $("periwound").value } }; state.history = [record, ...state.history].slice(0, 20); saveHistory(); renderHistory(); $("formMessage").textContent = "Numeric result saved locally. Images were not saved.";
+}
+
+function downloadResult() { if (!state.result) return; const blob = new Blob([JSON.stringify({ ...state.result, context: { exudate: $("exudate").value, tissue: $("tissueContext").value, periwound: $("periwound").value } }, null, 2)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "depthline-paired-comparison.json"; link.click(); URL.revokeObjectURL(link.href); }
+
+function renderHistory() { const list = $("historyList"); if (!state.history.length) { list.replaceChildren(Object.assign(document.createElement("p"), { className: "helper", textContent: "No numeric comparisons saved on this device." })); return; } list.replaceChildren(...state.history.map((record) => { const item = document.createElement("div"); item.className = "history-item"; const label = document.createElement("span"); label.textContent = `${new Date(record.captured_at).toLocaleDateString()} · ${record.earlier_image} → ${record.later_image}`; const value = document.createElement("strong"); value.textContent = record.change.areaReductionPercent === null ? "uncalibrated" : `${format(record.change.areaReductionPercent, 1)}% area`; item.append(label, value); return item; })); }
+
+function resetPair() { Object.values(state.images).forEach((entry) => { if (entry?.src) URL.revokeObjectURL(entry.src); }); state.images = { baseline: null, followup: null }; state.result = null; $("baselineFile").value = ""; $("followupFile").value = ""; $("resultsSection").hidden = true; drawPhotoPreview("baseline"); drawPhotoPreview("followup"); updateForm(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+function syntheticImage(woundScale) {
+  const canvas = document.createElement("canvas"); canvas.width = 640; canvas.height = 480; const context = canvas.getContext("2d"); context.fillStyle = "#c98f76"; context.fillRect(0, 0, canvas.width, canvas.height); context.fillStyle = "rgba(230, 167, 142, .45)"; context.fillRect(0, 0, canvas.width, canvas.height); context.strokeStyle = "#faf4d2"; context.lineWidth = 10; context.strokeRect(44, 34, 100, 42); context.fillStyle = "#9f443d"; context.beginPath(); context.ellipse(330, 260, 100 * woundScale, 75 * woundScale, -.16, 0, Math.PI * 2); context.fill(); context.fillStyle = "#d1a34e"; context.beginPath(); context.ellipse(315, 245, 36 * woundScale, 21 * woundScale, .2, 0, Math.PI * 2); context.fill(); return canvas.toDataURL("image/png");
+}
+
+function loadSyntheticPair() { Promise.all([createImageBitmapFromFile(dataUrlToFile(syntheticImage(1), "synthetic-earlier.png")), createImageBitmapFromFile(dataUrlToFile(syntheticImage(.72), "synthetic-later.png"))]).then(([baseline, followup]) => { Object.values(state.images).forEach((entry) => { if (entry?.src) URL.revokeObjectURL(entry.src); }); state.images = { baseline, followup }; $("baselineMarkerPx").value = 100; $("followupMarkerPx").value = 100; $("roiX").value = 20; $("roiY").value = 20; $("roiWidth").value = 60; $("roiHeight").value = 60; drawPhotoPreview("baseline"); drawPhotoPreview("followup"); updateForm(); }).catch((error) => { $("formMessage").textContent = error.message; }); }
+
+function dataUrlToFile(dataUrl, name) { const [header, body] = dataUrl.split(","); const bytes = atob(body); const array = new Uint8Array(bytes.length); for (let index = 0; index < bytes.length; index += 1) array[index] = bytes.charCodeAt(index); return new File([array], name, { type: header.match(/:(.*?);/)[1] }); }
+
+async function updateDepthApiStatus() { const status = $("depthApiStatus"); try { const capability = await getWebXRDepthCapability(); status.textContent = capability.supported ? "WebXR depth available · native route" : "Photo route · native depth export available"; status.title = capability.reason; status.classList.toggle("available", capability.supported); } catch { status.textContent = "Photo route · native depth export available"; } }
+
+$("baselineFile").addEventListener("change", (event) => { if (event.target.files?.[0]) loadPhoto("baseline", event.target.files[0]); });
+$("followupFile").addEventListener("change", (event) => { if (event.target.files?.[0]) loadPhoto("followup", event.target.files[0]); });
+$("loadDemo").addEventListener("click", loadSyntheticPair);
+$("comparePair").addEventListener("click", () => { try { comparePair(); $("formMessage").textContent = "Outline generated locally. Review it before saving."; } catch (error) { $("formMessage").textContent = error.message; } });
+$("sensitivity").addEventListener("input", (event) => { $("sensitivityValue").textContent = Number(event.target.value).toFixed(1); if (state.result) { try { comparePair(); } catch { /* keep the last valid result visible */ } } });
+["samePose", "sameLighting", "reviewedMask", "markerWidthMm", "baselineMarkerPx", "followupMarkerPx", "daysBetween", "roiX", "roiY", "roiWidth", "roiHeight"].forEach((id) => $(id).addEventListener("change", () => { updateForm(); if (state.result) { try { comparePair(); } catch { /* keep the last valid result visible */ } } }));
+$("saveResult").addEventListener("click", saveResult); $("downloadResult").addEventListener("click", downloadResult); $("resetPair").addEventListener("click", resetPair);
+$("clearHistory").addEventListener("click", () => { if (!confirm("Clear saved numeric comparisons from this device?")) return; state.history = []; saveHistory(); renderHistory(); });
+
+renderHistory(); drawPhotoPreview("baseline"); drawPhotoPreview("followup"); updateForm(); updateDepthApiStatus();

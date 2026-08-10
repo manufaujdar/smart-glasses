@@ -161,3 +161,9 @@ interface. It captures an in-memory visual reference, imports calibrated depth
 JSON, and stores numeric history in browser storage or the optional local SQLite
 service; it does not claim that an ordinary RGB camera can measure LiDAR depth.
 See [COMPLIANCE.md](COMPLIANCE.md) for the explicit research-only boundary.
+
+The paired-photo comparison method is documented in
+[WOUND_COMPARISON_METHOD.md](WOUND_COMPARISON_METHOD.md). The current browser
+workflow is designed to compare an earlier and later image with scale, pose,
+lighting, and segmentation-review gates; it reports measurable photo change,
+not a healing score.

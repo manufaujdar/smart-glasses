@@ -18,6 +18,13 @@ was copied into this tool.
 - [Automatic segmentation and measurement of pressure injuries using deep learning models and a LiDAR camera](https://pmc.ncbi.nlm.nih.gov/articles/PMC9839689/) — reports a LiDAR plus segmentation workflow and highlights the need for external validation.
 - [Evaluation of a Novel Three-Dimensional Wound Measurement Device for Assessment of Diabetic Foot Ulcers](https://pmc.ncbi.nlm.nih.gov/articles/PMC7580588/) — emphasizes reliability, practicality, and comparison against established measurements.
 - [Quantitative Monitoring Wound Healing Status Through Three-dimensional Imaging on Mobile Platforms](https://pmc.ncbi.nlm.nih.gov/articles/PMC6161627/) — relevant background for serial 3D measurement and repeatability.
+- [NSW Agency for Clinical Innovation wound assessment toolkit](https://aci.health.nsw.gov.au/networks/spinal-cord-injury/pi-toolkit/assessment/wound-assessment/validated-tool) — distinguishes validated assessment tools such as PUSH and BWAT from ad-hoc scores.
+- [Digital planimetry results in more accurate wound measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC2909508/) — supports calibrated planimetry over length × width estimation.
+- [Non-contact digital planimetry using a photo scale reference](https://pubmed.ncbi.nlm.nih.gov/36001845/) — reports reproducibility of a marker-based photo workflow.
+- [Automatic colorimetric calibration of human wounds](https://pmc.ncbi.nlm.nih.gov/articles/PMC2850874/) — supports color-chart/white-balance controls before interpreting color changes.
+- [Standardized photography protocol for injury documentation](https://pubmed.ncbi.nlm.nih.gov/26932497/) — supports consistent distance, scale, orientation, and capture protocol.
+- [The influence of wound geometry on healing-rate measurement](https://doi.org/10.1016/S0741-5214(96)80021-8) — motivates reporting linear edge change alongside percentage area reduction.
+- [Structural similarity image quality assessment](https://pubmed.ncbi.nlm.nih.gov/15376593/) — source for the SSIM-style image comparison signal.
 
 These papers are evidence for what must be tested, not evidence that this
 prototype is clinically accurate. No clinical performance claim is made here.

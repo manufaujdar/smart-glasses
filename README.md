@@ -19,9 +19,9 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
    python3 tools/ot_runtime_simulator.py
    ```
 
-   For a dependency-free browser view of the synthetic device state machine, run
+   For the dependency-free Fieldline browser view of the synthetic device state machine, run
    `python3 tools/web_console.py` and open `http://127.0.0.1:8766`. The JSON
-   gateway provides `GET /health`, `GET /api/state`, `GET /api/events`,
+   console provides `GET /api/state`, `GET /api/events`,
    `POST /api/command`, and `POST /api/reset` on loopback only.
 
    Example command:
@@ -37,6 +37,15 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
 
 5. For a physical Android/HeyCyan test, follow [`apps/android-controller/README.md`](apps/android-controller/README.md).
 
+## Open-source and research boundary
+
+The original project code is available under Apache-2.0. See [LICENSE](LICENSE),
+[NOTICE](NOTICE), [CONTRIBUTING.md](CONTRIBUTING.md),
+[GOVERNANCE.md](GOVERNANCE.md), and [COMPLIANCE.md](COMPLIANCE.md). Third-party
+SDKs, source archives, datasets, and models retain their own terms and require
+separate provenance review. A version or passing test suite does not imply
+clinical validation, regulatory clearance, or production readiness.
+
 ## Repository map
 
 ```text
@@ -49,6 +58,7 @@ services/clinical-gateway/     Future PHI-aware policy and integration service
 services/ot-runtime/            Synthetic OT-safe media/voice session orchestrator
 tools/                         Deterministic local device simulator
 tools/ot_runtime_simulator.py  End-to-end synthetic media/voice/OT smoke tool
+webapp/                        Calm local simulator console and method page
 tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool
 tools/lidar_wound_progress/    Standalone longitudinal LiDAR geometry reviewer
 tools/lidar_wound_progress/webapp/  Local-first camera/depth review webapp

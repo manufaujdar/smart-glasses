@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Method · Fieldline</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to method</a>
+  <header class="site-header"><a class="brand" href="/"><span><strong>Fieldline</strong><small>Method and limitations</small></span></a><nav><a href="/">Simulator</a><a href="https://github.com/manufaujdar/smart-glasses">Source</a></nav></header>
+  <main id="main" class="method-page">
+    <p class="eyebrow">Research method</p>
+    <h1>What the simulator proves—and what it does not</h1>
+    <p class="lede">The console sends allowlisted commands to a deterministic local state machine. It is designed to make command, capability, replay, and safe-state behavior reviewable before physical-device integration.</p>
+    <section><h2>Current evidence</h2><ul><li>Commands fail closed while disconnected or unsupported.</li><li>Command IDs provide deterministic replay behavior.</li><li>Capture modes and declared capabilities are enforced.</li><li>Synthetic disconnect, battery, and indicator faults can trigger safe-stop behavior in the related runtime tests.</li></ul></section>
+    <section><h2>Not demonstrated</h2><ul><li>Bluetooth discovery, pairing, command packets, Wi-Fi transfer, or physical-device compatibility.</li><li>Camera, microphone, display, battery, thermal, cleaning, or network performance.</li><li>Clinical benefit, diagnostic accuracy, treatment support, navigation, or regulatory compliance.</li><li>Security or privacy suitability for patient data.</li></ul></section>
+    <section><h2>Next validation boundary</h2><p>Use an authorized vendor SDK and synthetic scenes to run the device-validation protocol. Freeze hardware, firmware, phone OS, SDK, network, test revision, and expected safe states. Do not introduce patient data until institutional privacy, security, clinical-safety, and regulatory review are complete.</p></section>
+  </main>
+  <footer><p><strong>Local research tool.</strong> See <a href="https://github.com/manufaujdar/smart-glasses/blob/main/VALIDATION_PROTOCOL.md">VALIDATION_PROTOCOL.md</a> for the broader protocol.</p></footer>
+</body>
+</html>

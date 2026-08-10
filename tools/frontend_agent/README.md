@@ -1,6 +1,7 @@
-# Depthline frontend improvement agent
+# Smart Glasses frontend improvement agent
 
-This is a local-first, provider-neutral review agent for the Depthline webapp.
+This is a local-first, provider-neutral review agent for the Fieldline synthetic
+smart-glasses console.
 It is intentionally supervised: it audits the frontend, compares agent
 capabilities, and prepares a bounded improvement brief. It does not call a
 model, upload source code, edit files, or commit changes by default.
@@ -12,11 +13,12 @@ From the repository root:
 ```bash
 python3 tools/frontend_agent/frontend_agent.py audit
 python3 tools/frontend_agent/frontend_agent.py compare --json
-python3 tools/frontend_agent/frontend_agent.py prompt > /tmp/depthline-frontend-brief.txt
+python3 tools/frontend_agent/frontend_agent.py prompt > /tmp/smart-glasses-frontend-brief.txt
 ```
 
 The audit checks responsive metadata, accessibility signals, copy density,
-dynamic HTML escaping, persistence disclosure, and camera truthfulness. The
+dynamic HTML escaping, persistence disclosure, and physical-device/clinical
+truthfulness. The
 agent comparison is a capability matrix, not a performance benchmark. Use the
 same prompt, repository state, browser viewport checks, and regression tests for
 any external agent candidate.
@@ -33,12 +35,12 @@ any external agent candidate.
   composable agent framework with a higher setup and sandbox-policy cost.
 
 No winner is hard-coded. A human should approve the patch plan and compare the
-result against: visual simplicity, mobile usability, accessibility, no unsafe
-measurement claims, no data exfiltration, passing tests, and clean diffs.
+result against visual simplicity, mobile usability, accessibility, no unsafe
+hardware or clinical claims, no data exfiltration, passing tests, and clean diffs.
 
 ## Safety boundary
 
-Never pass patient images, identifiers, credentials, or raw clinical captures to
-an external agent. Keep source upload disabled unless the destination, data
-handling, retention, and approval are explicit. The current camera workflow is
-manual; this agent must not turn it into an automatic clinical claim.
+Never pass patient images, identifiers, credentials, device recordings, or raw
+clinical captures to an external agent. Keep source upload disabled unless the
+destination, data handling, retention, and approval are explicit. The console
+is synthetic and must not be presented as physical-device or clinical evidence.

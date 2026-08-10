@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local-first agent for auditing and improving the Depthline frontend.
+"""Local-first agent for auditing the Smart Glasses simulator frontend.
 
 The default workflow is deterministic and does not call an external model.
 The ``prompt`` command prepares a bounded review brief for a human-selected
@@ -18,7 +18,7 @@ from typing import Any, Iterable
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
-WEBAPP_RELATIVE = Path("tools/lidar_wound_progress/webapp")
+WEBAPP_RELATIVE = Path("webapp")
 
 
 @dataclass(frozen=True)
@@ -105,7 +105,7 @@ AGENTS: tuple[AgentProfile, ...] = (
 def _read_frontend(root: Path) -> dict[str, str]:
     directory = root / WEBAPP_RELATIVE
     files: dict[str, str] = {}
-    for name in ("index.html", "styles.css", "app.js", "README.md"):
+    for name in ("index.html", "method.html", "styles.css", "app.js", "README.md"):
         path = directory / name
         if path.exists():
             files[name] = path.read_text(encoding="utf-8")
@@ -130,9 +130,10 @@ def audit_frontend(root: Path = DEFAULT_ROOT) -> dict[str, Any]:
         findings.append(Finding("medium", "responsive", "No responsive breakpoint found", "The layout has no CSS breakpoint for small screens.", "Add a mobile layout and test at 320px and 768px widths."))
     if "innerHTML" in javascript and "escapeHtml" not in javascript:
         findings.append(Finding("high", "security", "Dynamic HTML needs an escaping boundary", "The app renders dynamic values through innerHTML without an obvious escaping helper.", "Use textContent or escape every untrusted value before interpolation."))
-    if "manual estimate" not in readme.lower() and "operator" not in readme.lower():
-        findings.append(Finding("high", "truthfulness", "Camera limitation is under-documented", "The camera path could be mistaken for true depth measurement.", "State that RGB camera depth is manual or device-API dependent."))
-    if "localStorage" not in javascript and "SQLite" not in readme:
+    boundary_text = (html + readme).lower()
+    if "does not control physical glasses" not in boundary_text and "physical device" not in boundary_text:
+        findings.append(Finding("high", "truthfulness", "Physical-device boundary is under-documented", "Synthetic state-machine behavior could be mistaken for hardware validation.", "State that the console does not control or validate physical glasses."))
+    if "localStorage" not in javascript:
         findings.append(Finding("medium", "workflow", "Persistence behavior is unclear", "The user may not know where numeric history is stored.", "Expose the active local persistence mode in the UI."))
     if len(parser.visible_text) > 90:
         findings.append(Finding("low", "clarity", "Visible copy may be too dense", f"The page contains {len(parser.visible_text)} visible text fragments.", "Move secondary explanation into a compact help/disclosure surface."))
@@ -145,7 +146,7 @@ def audit_frontend(root: Path = DEFAULT_ROOT) -> dict[str, Any]:
         if finding.area in scores:
             scores[finding.area] = max(0, scores[finding.area] - deductions[finding.severity])
     return {
-        "tool": "depthline-frontend-review-agent",
+        "tool": "smart-glasses-frontend-review-agent",
         "mode": "local_deterministic_audit",
         "root": str(root),
         "files_reviewed": sorted(files),
@@ -159,10 +160,10 @@ def audit_frontend(root: Path = DEFAULT_ROOT) -> dict[str, Any]:
         "scores": scores,
         "findings": [asdict(finding) for finding in findings],
         "pending_for_real_measurement": [
-            "device-specific depth API or professional depth export",
-            "validated wound segmentation and operator correction workflow",
-            "repeat-scan registration and phantom/reference-method error budget",
-            "model/data provenance, external validation, and rollback plan",
+            "authorized physical-device SDK and BLE/Wi-Fi validation",
+            "camera, microphone, battery, thermal, and cleaning characterization",
+            "representative speech, media, network, and human-factors validation",
+            "privacy, security, clinical-safety, regulatory, and deployment approval",
         ],
         "external_model_calls": False,
     }
@@ -181,12 +182,12 @@ def compare_agents() -> dict[str, Any]:
     return {
         "method": "capability matrix, not a model benchmark",
         "evaluation_rubric": [
-            {"criterion": "product clarity", "weight": 15, "check": "A first-time user can choose a route and complete one measurement without reading the full page."},
+            {"criterion": "product clarity", "weight": 15, "check": "A first-time user can run one synthetic command and understand the resulting state without reading the full page."},
             {"criterion": "visual craft", "weight": 20, "check": "Hierarchy, spacing, typography, and states feel intentional at mobile and desktop widths."},
             {"criterion": "human tone and brand", "weight": 10, "check": "Labels sound like a thoughtful product team wrote them; the brand mark, palette, and content hierarchy have a clear reason to exist."},
             {"criterion": "responsive accessibility", "weight": 15, "check": "Keyboard focus, labels, contrast, reduced copy, and 320/768/desktop layouts are usable."},
-            {"criterion": "functional regression", "weight": 20, "check": "Camera preview, LiDAR import, history, SQLite fallback, and download remain functional."},
-            {"criterion": "measurement truthfulness", "weight": 10, "check": "No RGB-depth or clinical recovery claim is introduced; uncertainty and limitations remain visible."},
+            {"criterion": "functional regression", "weight": 20, "check": "Command execution, state refresh, replay, local history, export, and method navigation remain functional."},
+            {"criterion": "measurement truthfulness", "weight": 10, "check": "No physical-device, clinical benefit, diagnosis, treatment, or navigation claim is introduced."},
             {"criterion": "privacy and maintainability", "weight": 10, "check": "No patient data upload, secrets, unexplained dependencies, or unreviewed generated bulk rewrite."},
         ],
         "release_gates": [
@@ -212,17 +213,17 @@ def compare_agents() -> dict[str, Any]:
 
 
 def improvement_prompt(audit: dict[str, Any], comparison: dict[str, Any]) -> str:
-    return f"""You are reviewing the Depthline frontend, a local-first research prototype for geometry-only wound-surface review.
+    return f"""You are reviewing Fieldline, the local Smart Glasses synthetic device-state console.
 
 Constraints:
-- Do not claim RGB camera depth, wound healing, diagnosis, treatment, or clinical accuracy.
-- Preserve the dependency-free browser app and Python local service unless a change is justified.
-- Make the UI calmer, shorter, accessible, responsive, and explicit about camera-versus-LiDAR limitations.
+- Do not claim physical-device validation, clinical benefit, diagnosis, treatment, navigation, or production readiness.
+- Preserve the dependency-free browser app and loopback-only Python server unless a change is justified.
+- Make the UI calm, accessible, responsive, and explicit about synthetic-versus-physical-device limitations.
 - Make the content sound human and product-specific: avoid generic AI marketing language, inflated promises, decorative gradients, excessive pills, and equal-weight cards.
-- Give the product one restrained visual idea—a measured contour/line motif is appropriate here—and use it consistently in the mark, accent, and result overlays.
+- Preserve the restrained field-of-view contour motif and use emphasis only for state, safety, and the primary action.
 - Use healthcare-oriented open-source design references such as the CMS Design System, DHIS2 UI, Radix Colors, and Primer as principles, not copied code or assets.
 - Prefer small composable modules over a framework migration.
-- Do not add cloud uploads, patient identifiers, model weights, or secrets.
+- Do not add cloud uploads, patient identifiers, device captures, model weights, or secrets.
 - Return a proposed patch plan first. Do not edit files until a human approves it.
 
 Local audit:
@@ -233,7 +234,7 @@ Agent comparison:
 
 Deliver:
 1. Three highest-impact frontend changes, including one voice or brand decision.
-2. One accessibility improvement and one measurement-truthfulness check.
+2. One accessibility improvement and one hardware/clinical-truthfulness check.
 3. A browser validation checklist at 320px, 768px, and desktop widths.
 4. A small patch plan naming exact files and tests.
 5. Explicitly identify anything that remains simulated or clinically unvalidated.

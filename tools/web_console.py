@@ -9,13 +9,25 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "device-contracts"))
 sys.path.insert(0, str(ROOT / "tools"))
 
 from device_gateway import DeviceGateway  # noqa: E402
-CONSOLE_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Glasses simulator lab</title><style>body{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}select,input,button{font:inherit;padding:.6rem}label{display:block;margin:.8rem 0}pre{background:#111827;color:#e5e7eb;padding:1rem;min-height:12rem;overflow:auto}.warn{background:#fff1ec;border-left:4px solid #a23b24;padding:.8rem}</style></head><body><h1>Smart Glasses simulator lab</h1><p class="warn">Synthetic research simulator only—not a medical device, physical-device controller, diagnostic system, or surgical navigation tool.</p><label>Command <select id="command"><option>device.connect</option><option>device.get_version</option><option>device.get_battery</option><option>camera.take_photo</option><option>camera.start_video</option><option>camera.stop_video</option><option>audio.start_recording</option><option>audio.stop_recording</option><option>media.get_counts</option><option>device.disconnect</option></select></label><label>Command ID (reuse it to test replay) <input id="id" value="browser-command-1"></label><button id="send">Send synthetic command</button><button id="reset">Reset simulator</button><pre id="result" aria-live="polite">Disconnected.</pre><script>let count=1;const out=document.querySelector('#result');async function request(path,body){const response=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});out.textContent=JSON.stringify(await response.json(),null,2)}document.querySelector('#send').onclick=async()=>{try{await request('/api/command',{name:document.querySelector('#command').value,command_id:document.querySelector('#id').value})}catch(error){out.textContent=String(error)}};document.querySelector('#reset').onclick=async()=>{try{await request('/api/reset',{});count+=1;document.querySelector('#id').value='browser-command-'+count}catch(error){out.textContent=String(error)}};</script></body></html>"""
+
+WEBAPP_ROOT = ROOT / "webapp"
+
+
+def _read_webapp(name: str) -> str:
+    return (WEBAPP_ROOT / name).read_text(encoding="utf-8")
+
+
+CONSOLE_HTML = _read_webapp("index.html")
+METHOD_HTML = _read_webapp("method.html")
+STYLES_CSS = _read_webapp("styles.css")
+APP_JS = _read_webapp("app.js")
 
 _gateway = DeviceGateway()
 
@@ -28,12 +40,32 @@ def execute_command(name: str, command_id: str) -> dict[str, Any]:
     return _gateway.execute_command(name, command_id)["event"]
 
 
+def current_state() -> dict[str, Any]:
+    return _gateway.state()
+
+
+def current_events() -> list[dict[str, Any]]:
+    return _gateway.events()
+
+
 class ConsoleHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        if self.path != "/":
+        path = urlsplit(self.path).path
+        resources = {
+            "/": (CONSOLE_HTML, "text/html; charset=utf-8"),
+            "/method": (METHOD_HTML, "text/html; charset=utf-8"),
+            "/styles.css": (STYLES_CSS, "text/css; charset=utf-8"),
+            "/app.js": (APP_JS, "text/javascript; charset=utf-8"),
+        }
+        if path in resources:
+            body, content_type = resources[path]
+            self._send(200, body, content_type)
+        elif path == "/api/state":
+            self._send(200, json.dumps(current_state()))
+        elif path == "/api/events":
+            self._send(200, json.dumps({"events": current_events()}))
+        else:
             self.send_error(404)
-            return
-        self._send(200, CONSOLE_HTML, "text/html; charset=utf-8")
 
     def do_POST(self) -> None:
         try:
@@ -44,7 +76,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             if self.path == "/api/reset":
                 result = reset_simulator()
             elif self.path == "/api/command":
-                result = execute_command(body.get("name"), body.get("command_id"))
+                event = execute_command(body.get("name"), body.get("command_id"))
+                result = {"event": event, "state": current_state()}
             else:
                 self.send_error(404)
                 return
@@ -61,6 +94,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.send_header("content-type", content_type)
         self.send_header("content-length", str(len(payload)))
         self.send_header("cache-control", "no-store")
+        self.send_header("x-content-type-options", "nosniff")
+        self.send_header("referrer-policy", "no-referrer")
+        self.send_header(
+            "content-security-policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'",
+        )
         self.end_headers()
         self.wfile.write(payload)
 
@@ -71,7 +112,12 @@ def main() -> None:
     args = parser.parse_args()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), ConsoleHandler)
     print(f"Smart Glasses simulator lab: http://127.0.0.1:{args.port}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use Smart Glasses Clinical Platform in research, please cite this repository."
+title: "Smart Glasses Clinical Platform"
+type: software
+authors:
+  - family-names: Faujdar
+    given-names: Manu
+    affiliation: Independent research software project
+repository-code: "https://github.com/manufaujdar/smart-glasses"
+license: Apache-2.0
+version: 0.1.1
+date-released: 2026-08-10
+abstract: >-
+  Android-first, vendor-neutral research framework for smart-glasses device
+  control, media and voice runtimes, synthetic operating-theatre workflows,
+  and explicit clinical-safety, privacy, and validation boundaries.

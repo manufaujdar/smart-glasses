@@ -10,13 +10,14 @@ from frontend_agent import audit_frontend, compare_agents, improvement_prompt  #
 
 
 class FrontendAgentTests(unittest.TestCase):
-    def test_local_audit_is_deterministic_and_sees_depthline(self):
+    def test_local_audit_is_deterministic_and_sees_fieldline(self):
         report = audit_frontend(ROOT)
         self.assertEqual(report["mode"], "local_deterministic_audit")
         self.assertIn("index.html", report["files_reviewed"])
         self.assertIn("app.js", report["files_reviewed"])
         self.assertFalse(report["external_model_calls"])
-        self.assertIn("device-specific depth API", " ".join(report["pending_for_real_measurement"]))
+        self.assertEqual(report["tool"], "smart-glasses-frontend-review-agent")
+        self.assertIn("physical-device SDK", " ".join(report["pending_for_real_measurement"]))
 
     def test_agent_matrix_has_supervised_selection_criteria(self):
         comparison = compare_agents()
@@ -27,9 +28,9 @@ class FrontendAgentTests(unittest.TestCase):
 
     def test_prompt_contains_audit_and_safety_constraints(self):
         prompt = improvement_prompt(audit_frontend(ROOT), compare_agents())
-        self.assertIn("Do not claim RGB camera depth", prompt)
+        self.assertIn("Do not claim physical-device validation", prompt)
         self.assertIn("proposed patch plan", prompt)
-        self.assertIn("Depthline frontend", prompt)
+        self.assertIn("Fieldline", prompt)
         json.dumps(prompt)
 
 

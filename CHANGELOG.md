@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added Apache-2.0 licensing, citation, notice, governance, compliance, conduct,
+  validation, model-card, dataset-card, issue, pull-request, and dependency
+  maintenance scaffolding for public research collaboration.
+- Replaced the inline simulator page with the Fieldline local research console,
+  including device-state cards, collapsible details, local synthetic history,
+  JSON export, a copyable Markdown review brief, responsive styles, and a
+  method/limitations page.
+- Retargeted the deterministic frontend review agent to the Smart Glasses
+  console and expanded CI with compilation, JavaScript syntax, audit, and
+  whitespace checks.
+
 - Added a loopback-only, dependency-free browser lab for the synthetic device
   command simulator, including replay and unsupported-command tests.
 - Made simulator command execution idempotent for safe client retries using `command_id` replay.

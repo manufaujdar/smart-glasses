@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Fieldline · Smart glasses simulator</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to simulator</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Fieldline home">
+      <svg class="brand-mark" viewBox="0 0 48 48" role="img" aria-label="Layered field-of-view contour mark">
+        <path d="M7 15c8-7 26-7 34 0M7 24c9-5 25-5 34 0M7 33c10-3 24-3 34 0"/>
+        <circle cx="24" cy="24" r="3"/>
+      </svg>
+      <span><strong>Fieldline</strong><small>Smart glasses research console</small></span>
+    </a>
+    <nav aria-label="Project navigation">
+      <a href="/method">Method</a>
+      <a href="https://github.com/manufaujdar/smart-glasses">Source</a>
+      <a href="https://github.com/manufaujdar/smart-glasses/blob/main/LICENSE">License</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Local synthetic research tool</p>
+        <h1 id="page-title">Test the device state machine without glasses</h1>
+        <p class="lede">Exercise connection, capture, audio, video, battery, and safe-state behavior. Results remain in this browser unless you download them.</p>
+      </div>
+      <div class="trust-note"><span class="status-dot" aria-hidden="true"></span><span><strong>Local only</strong><br>No patient data or external model calls</span></div>
+    </section>
+
+    <section class="boundary" aria-label="Research limitation">
+      <strong>Research simulator only—not a medical device.</strong> This interface does not control physical glasses and must not be used for diagnosis, treatment, clinical navigation, or patient care.
+    </section>
+
+    <div class="workspace">
+      <section class="panel control-panel" aria-labelledby="control-title">
+        <div class="section-heading">
+          <div><p class="step">Step 1</p><h2 id="control-title">Send a synthetic command</h2></div>
+          <span id="connection-chip" class="chip" data-state="disconnected">Disconnected</span>
+        </div>
+
+        <form id="command-form">
+          <label for="command">Command</label>
+          <select id="command" name="command">
+            <option value="device.connect">Connect device</option>
+            <option value="device.get_version">Read version</option>
+            <option value="device.get_battery">Read battery</option>
+            <option value="camera.take_photo">Take photo</option>
+            <option value="camera.start_video">Start video</option>
+            <option value="camera.stop_video">Stop video</option>
+            <option value="audio.start_recording">Start audio</option>
+            <option value="audio.stop_recording">Stop audio</option>
+            <option value="media.get_counts">Read media counts</option>
+            <option value="device.disconnect">Disconnect device</option>
+          </select>
+
+          <label for="command-id">Command ID</label>
+          <input id="command-id" name="command-id" value="browser-command-1" maxlength="100" required aria-describedby="command-help">
+          <p id="command-help" class="help">Reuse the same ID to verify idempotent replay.</p>
+
+          <button class="primary" type="submit">Run command</button>
+        </form>
+
+        <details>
+          <summary>Advanced controls</summary>
+          <div class="details-body">
+            <button id="refresh" class="secondary" type="button">Refresh state</button>
+            <button id="reset" class="secondary" type="button">Reset simulator</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel state-panel" aria-labelledby="state-title">
+        <div class="section-heading"><div><p class="step">Step 2</p><h2 id="state-title">Review device state</h2></div></div>
+        <dl class="metrics">
+          <div><dt>Connection</dt><dd id="connection">Disconnected</dd></div>
+          <div><dt>Battery</dt><dd id="battery">—</dd></div>
+          <div><dt>Photos</dt><dd id="photos">0</dd></div>
+          <div><dt>Active capture</dt><dd id="capture">None</dd></div>
+        </dl>
+        <div id="status" class="status-message" role="status" aria-live="polite">Ready for a synthetic connection.</div>
+        <details>
+          <summary>Latest event and capabilities</summary>
+          <div class="details-body"><pre id="result">No event yet.</pre><p id="capabilities" class="help"></p></div>
+        </details>
+      </section>
+    </div>
+
+    <section class="panel history-panel" aria-labelledby="history-title">
+      <div class="section-heading">
+        <div><p class="step">Step 3</p><h2 id="history-title">Local review history</h2></div>
+        <span id="history-count" class="chip">0 events</span>
+      </div>
+      <div id="empty-history" class="empty-state">Run a command to create a local synthetic review record.</div>
+      <ol id="history" class="history-list"></ol>
+      <div class="actions">
+        <button id="download" class="secondary" type="button">Download JSON</button>
+        <button id="copy-brief" class="secondary" type="button">Copy Markdown brief</button>
+        <button id="clear-history" class="text-button" type="button">Clear local history</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>Fieldline is a research interface.</strong> Physical hardware, clinical workflows, privacy, human factors, and regulatory status remain unvalidated.</p>
+    <p><a href="/method">Read the method and limitations</a></p>
+  </footer>
+</body>
+</html>

@@ -37,12 +37,12 @@ class WebConsoleTests(unittest.TestCase):
         self.assertIn('name="viewport"', CONSOLE_HTML)
         self.assertIn('class="skip-link"', CONSOLE_HTML)
         self.assertIn('aria-live="polite"', CONSOLE_HTML)
-        self.assertIn("@media(max-width:760px)", STYLES_CSS)
+        self.assertIn("@media(max-width:600px)", STYLES_CSS)
         self.assertIn("localStorage", APP_JS)
-        self.assertIn("Copy Markdown brief", CONSOLE_HTML)
+        self.assertIn("Copy review brief", CONSOLE_HTML)
 
     def test_method_page_and_state_are_available(self) -> None:
-        self.assertIn("What the simulator proves", METHOD_HTML)
+        self.assertIn("What connects now", METHOD_HTML)
         self.assertTrue(current_state()["synthetic"])
 
 

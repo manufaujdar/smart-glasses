@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added the Fieldline multi-adapter FastAPI gateway and responsive integration
+  console with adapter discovery/selection, capability-gated device actions,
+  WebSocket events, browser-local camera/microphone capture, push-to-talk voice
+  controls, and simulator media/preview/stream state transitions.
+- Added external bridge profiles and contracts for an authorized HeyCyan SDK,
+  Mentra Bluetooth SDK, and Brilliant Frame SDK, plus an optional LiveKit
+  transport recommendation. No vendor binary, firmware or packet code is
+  included.
+
 - Added Apache-2.0 licensing, citation, notice, governance, compliance, conduct,
   validation, model-card, dataset-card, issue, pull-request, and dependency
   maintenance scaffolding for public research collaboration.

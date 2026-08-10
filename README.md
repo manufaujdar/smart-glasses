@@ -19,10 +19,10 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
    python3 tools/ot_runtime_simulator.py
    ```
 
-   For the dependency-free Fieldline browser view of the synthetic device state machine, run
-   `python3 tools/web_console.py` and open `http://127.0.0.1:8766`. The JSON
-   console provides `GET /api/state`, `GET /api/events`,
-   `POST /api/command`, and `POST /api/reset` on loopback only.
+   For the dependency-free synthetic JSON gateway, run
+   `python3 tools/device_gateway.py --port 8767`. It provides `GET /health`,
+   `GET /api/state`, `GET /api/events`, `POST /api/command`, and
+   `POST /api/reset` on loopback only.
 
    Example command:
 
@@ -34,6 +34,20 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
 
    The gateway is synthetic and fail-closed: it does not connect to physical
    glasses, accept clinical navigation commands, or store patient data.
+
+   For the multi-adapter frontend/backend integration lab:
+
+   ```bash
+   ./scripts/bootstrap.sh
+   .venv/bin/python tools/integration_server.py
+   ```
+
+   Open `http://127.0.0.1:8766`. The simulator supports discovery, connection,
+   camera/photo/video/audio/stream lifecycle, media metadata, browser-local
+   camera/microphone capture, WebSocket events and push-to-talk commands.
+   HeyCyan, Mentra and Brilliant profiles remain unavailable until their
+   authorized external bridge URL is configured; see
+   [`docs/architecture/device-integration-runtime.md`](docs/architecture/device-integration-runtime.md).
 
 5. For a physical Android/HeyCyan test, follow [`apps/android-controller/README.md`](apps/android-controller/README.md).
 
@@ -51,12 +65,14 @@ clinical validation, regulatory clearance, or production readiness.
 ```text
 apps/android-controller/       Android companion and HeyCyan adapter boundary
 packages/device-contracts/     Vendor-neutral device events and commands
+packages/device_runtime/       Multi-adapter runtime and external bridge clients
 packages/surgical-workflows/   Non-clinical OR session and safety-state contracts
 packages/media-runtime/         Bounded low-latency video and image-quality controls
 packages/voice-runtime/         Narration and allowlisted voice-command contracts
 services/clinical-gateway/     Future PHI-aware policy and integration service
 services/ot-runtime/            Synthetic OT-safe media/voice session orchestrator
 tools/                         Deterministic local device simulator
+tools/integration_server.py    FastAPI multi-adapter backend and webapp server
 tools/ot_runtime_simulator.py  End-to-end synthetic media/voice/OT smoke tool
 webapp/                        Calm local simulator console and method page
 tools/lidar_wound_depth/       Calibrated LiDAR surface-depth research tool

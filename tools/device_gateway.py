@@ -111,8 +111,12 @@ class DeviceGateway:
             "connection_state": self._device.state.value,
             "battery": self._device.battery,
             "photo_count": self._device.photo_count,
+            "video_count": self._device.video_count,
+            "audio_count": self._device.audio_count,
             "recording_audio": self._device.recording_audio,
             "recording_video": self._device.recording_video,
+            "preview_open": self._device.preview_open,
+            "streaming": self._device.streaming,
             "capabilities": sorted(self._device.capabilities),
         }
 

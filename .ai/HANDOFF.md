@@ -1,5 +1,27 @@
 # Current handoff
 
+## Multi-device integration console and gateway
+
+- Objective: create a runnable frontend/backend research system for connecting
+  smart-glasses adapters and exercising connection, camera, photo, video, audio,
+  voice-command, media, and live-stream lifecycle actions.
+- Architecture: preserve `packages/device-contracts` as the vendor-neutral
+  boundary; keep HeyCyan behavior in an authorized-SDK Android bridge; expose
+  simulator and external bridge adapters through one loopback backend; keep
+  browser camera/microphone previews distinct from glasses hardware evidence.
+- Evidence boundary: public HeyCyan material describes capabilities but labels
+  the SDK/protocol proprietary. No AAR, firmware, packet bytes, credentials,
+  device captures, or copied upstream code may enter the repository.
+- Safety gates: synthetic data by default; explicit adapter/capability labels;
+  visible recording/streaming state; exact voice allowlist and confirmation;
+  disconnect-safe stop; bounded event/media metadata; no clinical navigation,
+  diagnosis, treatment, patient identifiers, or production-readiness claim.
+- Validation: focused adapter/API/state-transition tests, full unit suite,
+  Python/JavaScript checks, loopback smoke test, and separate report-only safety
+  review before release.
+- Active role: device/platform execution. Next owner: independent safety and
+  release review, followed by licensed physical-device verification.
+
 ## Standalone LiDAR wound-progress reviewer
 
 - Objective: add a separate open-source research tool that compares calibrated

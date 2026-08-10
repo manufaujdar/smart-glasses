@@ -131,8 +131,8 @@ def audit_frontend(root: Path = DEFAULT_ROOT) -> dict[str, Any]:
     if "innerHTML" in javascript and "escapeHtml" not in javascript:
         findings.append(Finding("high", "security", "Dynamic HTML needs an escaping boundary", "The app renders dynamic values through innerHTML without an obvious escaping helper.", "Use textContent or escape every untrusted value before interpolation."))
     boundary_text = (html + readme).lower()
-    if "does not control physical glasses" not in boundary_text and "physical device" not in boundary_text:
-        findings.append(Finding("high", "truthfulness", "Physical-device boundary is under-documented", "Synthetic state-machine behavior could be mistaken for hardware validation.", "State that the console does not control or validate physical glasses."))
+    if "physical adapters require" not in boundary_text or "browser device—not the selected glasses" not in boundary_text:
+        findings.append(Finding("high", "truthfulness", "Physical-source boundary is under-documented", "Browser media or synthetic state could be mistaken for glasses hardware evidence.", "State that physical adapters require an authorized bridge and browser preview is not the glasses feed."))
     if "localStorage" not in javascript:
         findings.append(Finding("medium", "workflow", "Persistence behavior is unclear", "The user may not know where numeric history is stored.", "Expose the active local persistence mode in the UI."))
     if len(parser.visible_text) > 90:

@@ -1,22 +1,11 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Method · Fieldline</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to method</a>
-  <header class="site-header"><a class="brand" href="/"><span><strong>Fieldline</strong><small>Method and limitations</small></span></a><nav><a href="/">Simulator</a><a href="https://github.com/manufaujdar/smart-glasses">Source</a></nav></header>
-  <main id="main" class="method-page">
-    <p class="eyebrow">Research method</p>
-    <h1>What the simulator proves—and what it does not</h1>
-    <p class="lede">The console sends allowlisted commands to a deterministic local state machine. It is designed to make command, capability, replay, and safe-state behavior reviewable before physical-device integration.</p>
-    <section><h2>Current evidence</h2><ul><li>Commands fail closed while disconnected or unsupported.</li><li>Command IDs provide deterministic replay behavior.</li><li>Capture modes and declared capabilities are enforced.</li><li>Synthetic disconnect, battery, and indicator faults can trigger safe-stop behavior in the related runtime tests.</li></ul></section>
-    <section><h2>Not demonstrated</h2><ul><li>Bluetooth discovery, pairing, command packets, Wi-Fi transfer, or physical-device compatibility.</li><li>Camera, microphone, display, battery, thermal, cleaning, or network performance.</li><li>Clinical benefit, diagnostic accuracy, treatment support, navigation, or regulatory compliance.</li><li>Security or privacy suitability for patient data.</li></ul></section>
-    <section><h2>Next validation boundary</h2><p>Use an authorized vendor SDK and synthetic scenes to run the device-validation protocol. Freeze hardware, firmware, phone OS, SDK, network, test revision, and expected safe states. Do not introduce patient data until institutional privacy, security, clinical-safety, and regulatory review are complete.</p></section>
-  </main>
-  <footer><p><strong>Local research tool.</strong> See <a href="https://github.com/manufaujdar/smart-glasses/blob/main/VALIDATION_PROTOCOL.md">VALIDATION_PROTOCOL.md</a> for the broader protocol.</p></footer>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Architecture · Fieldline</title><link rel="stylesheet" href="/styles.css"></head>
+<body><a class="skip-link" href="#main">Skip to architecture</a><header class="site-header"><a class="brand" href="/"><span><strong>Fieldline</strong><small>Architecture and limitations</small></span></a><nav><a href="/">Console</a><a href="/api/docs">API</a><a href="https://github.com/manufaujdar/smart-glasses">Source</a></nav></header>
+<main id="main" class="method-page"><p class="eyebrow">Integration method</p><h1>What connects now—and what still needs hardware</h1><p class="lede">Fieldline is a vendor-neutral local control plane. The simulator runs end to end; physical devices connect only through an explicitly configured Android or vendor bridge.</p>
+<section><h2>Implemented now</h2><ul><li>Adapter discovery, selection and one-owner connection lifecycle.</li><li>Capability-gated photo, preview, video, audio, live-stream state, battery/version and media metadata commands.</li><li>Idempotent command IDs, bounded events, WebSocket state updates and disconnect safe-stop.</li><li>Browser/phone camera and microphone preview, local snapshot and local recording download.</li><li>Push-to-talk exact voice allowlist with confirmation for capture and start commands.</li></ul></section>
+<section><h2>Adapter paths</h2><ul><li><strong>HeyCyan:</strong> licensed SDK bridge for advertised BLE capture/status and Wi-Fi media workflows. No proprietary binary or guessed packet implementation is included.</li><li><strong>MentraOS:</strong> external Bluetooth SDK bridge with per-device capability negotiation.</li><li><strong>Brilliant Frame:</strong> external BLE/Lua SDK bridge for its distinct display/camera interaction model.</li><li><strong>LiveKit:</strong> recommended optional Android WebRTC sink after identity, token, TURN, encryption, recording and retention policy review.</li></ul></section>
+<section><h2>Not demonstrated</h2><ul><li>Physical HeyCyan discovery, pairing, firmware compatibility or media transfer until an authorized SDK and test device are supplied.</li><li>A glasses live preview where the selected device/SDK does not declare it.</li><li>Production speech recognition, AI inference, security/privacy suitability for patient data, clinical benefit or regulatory compliance.</li></ul></section>
+<section><h2>Run locally</h2><pre>./scripts/bootstrap.sh
+.venv/bin/python tools/integration_server.py
+# open http://127.0.0.1:8766</pre><p>Use synthetic scenes only. Configure a bridge through the documented environment variables after its license and provenance are approved.</p></section></main>
+<footer><p><strong>Research integration baseline.</strong> See <a href="https://github.com/manufaujdar/smart-glasses/blob/main/docs/architecture/device-integration-runtime.md">the runtime evidence and bridge design</a>.</p></footer></body></html>

@@ -4,113 +4,91 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Fieldline · Smart glasses simulator</title>
+  <title>Fieldline · Smart glasses integration lab</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to simulator</a>
+  <a class="skip-link" href="#main">Skip to integration controls</a>
   <header class="site-header">
     <a class="brand" href="/" aria-label="Fieldline home">
-      <svg class="brand-mark" viewBox="0 0 48 48" role="img" aria-label="Layered field-of-view contour mark">
-        <path d="M7 15c8-7 26-7 34 0M7 24c9-5 25-5 34 0M7 33c10-3 24-3 34 0"/>
-        <circle cx="24" cy="24" r="3"/>
-      </svg>
-      <span><strong>Fieldline</strong><small>Smart glasses research console</small></span>
+      <svg class="brand-mark" viewBox="0 0 48 48" role="img" aria-label="Layered field-of-view contour mark"><path d="M7 15c8-7 26-7 34 0M7 24c9-5 25-5 34 0M7 33c10-3 24-3 34 0"/><circle cx="24" cy="24" r="3"/></svg>
+      <span><strong>Fieldline</strong><small>Smart glasses integration lab</small></span>
     </a>
-    <nav aria-label="Project navigation">
-      <a href="/method">Method</a>
-      <a href="https://github.com/manufaujdar/smart-glasses">Source</a>
-      <a href="https://github.com/manufaujdar/smart-glasses/blob/main/LICENSE">License</a>
-    </nav>
+    <nav aria-label="Project navigation"><a href="/method">Architecture</a><a href="/api/docs">API</a><a href="https://github.com/manufaujdar/smart-glasses">Source</a></nav>
   </header>
 
   <main id="main">
     <section class="intro" aria-labelledby="page-title">
-      <div>
-        <p class="eyebrow">Local synthetic research tool</p>
-        <h1 id="page-title">Test the device state machine without glasses</h1>
-        <p class="lede">Exercise connection, capture, audio, video, battery, and safe-state behavior. Results remain in this browser unless you download them.</p>
-      </div>
-      <div class="trust-note"><span class="status-dot" aria-hidden="true"></span><span><strong>Local only</strong><br>No patient data or external model calls</span></div>
+      <div><p class="eyebrow">Local device control plane</p><h1 id="page-title">One console for glasses, media, voice, and streaming tests</h1><p class="lede">Select an adapter, discover a device, connect, and exercise capability-gated actions. The simulator is ready now; physical adapters require an authorized local bridge.</p></div>
+      <div class="trust-note"><span class="status-dot" aria-hidden="true"></span><span><strong id="gateway-status">Gateway checking…</strong><br><span id="socket-status">Realtime events offline</span></span></div>
     </section>
 
-    <section class="boundary" aria-label="Research limitation">
-      <strong>Research simulator only—not a medical device.</strong> This interface does not control physical glasses and must not be used for diagnosis, treatment, clinical navigation, or patient care.
+    <section class="boundary" aria-label="Research limitation"><strong>Research integration system—not a medical device.</strong> Use synthetic scenes only. No diagnosis, treatment, surgical navigation, patient care, or production handling of patient data.</section>
+
+    <section class="panel setup-panel" aria-labelledby="setup-title">
+      <div class="section-heading"><div><p class="step">01 · Adapter</p><h2 id="setup-title">Choose the connection owner</h2></div><span id="adapter-mode" class="chip">Loading</span></div>
+      <div class="setup-grid">
+        <div><label for="adapter">Device adapter</label><select id="adapter"></select><p id="adapter-info" class="help">Loading adapter evidence…</p></div>
+        <div class="button-stack"><button id="select-adapter" class="secondary" type="button">Use adapter</button><button id="discover" class="secondary" type="button">Discover devices</button></div>
+        <div><label for="device">Discovered device</label><select id="device"><option value="">Run discovery first</option></select><p id="discovery-status" class="help">No discovery run.</p></div>
+        <div class="button-stack"><button id="connect" class="primary compact" type="button">Connect</button><button id="disconnect" class="text-button" type="button">Disconnect / safe stop</button></div>
+      </div>
     </section>
 
     <div class="workspace">
-      <section class="panel control-panel" aria-labelledby="control-title">
-        <div class="section-heading">
-          <div><p class="step">Step 1</p><h2 id="control-title">Send a synthetic command</h2></div>
-          <span id="connection-chip" class="chip" data-state="disconnected">Disconnected</span>
-        </div>
-
-        <form id="command-form">
-          <label for="command">Command</label>
-          <select id="command" name="command">
-            <option value="device.connect">Connect device</option>
-            <option value="device.get_version">Read version</option>
-            <option value="device.get_battery">Read battery</option>
-            <option value="camera.take_photo">Take photo</option>
-            <option value="camera.start_video">Start video</option>
-            <option value="camera.stop_video">Stop video</option>
-            <option value="audio.start_recording">Start audio</option>
-            <option value="audio.stop_recording">Stop audio</option>
-            <option value="media.get_counts">Read media counts</option>
-            <option value="device.disconnect">Disconnect device</option>
-          </select>
-
-          <label for="command-id">Command ID</label>
-          <input id="command-id" name="command-id" value="browser-command-1" maxlength="100" required aria-describedby="command-help">
-          <p id="command-help" class="help">Reuse the same ID to verify idempotent replay.</p>
-
-          <button class="primary" type="submit">Run command</button>
-        </form>
-
-        <details>
-          <summary>Advanced controls</summary>
-          <div class="details-body">
-            <button id="refresh" class="secondary" type="button">Refresh state</button>
-            <button id="reset" class="secondary" type="button">Reset simulator</button>
-          </div>
-        </details>
+      <section class="panel" aria-labelledby="state-title">
+        <div class="section-heading"><div><p class="step">02 · State</p><h2 id="state-title">Device state</h2></div><span id="connection-chip" class="chip" data-state="disconnected">Disconnected</span></div>
+        <dl class="metrics six"><div><dt>Battery</dt><dd id="battery">—</dd></div><div><dt>Photos</dt><dd id="photos">0</dd></div><div><dt>Videos</dt><dd id="videos">0</dd></div><div><dt>Audio</dt><dd id="audio">0</dd></div><div><dt>Recording</dt><dd id="recording">None</dd></div><div><dt>Stream</dt><dd id="stream">Off</dd></div></dl>
+        <p id="status" class="status-message" role="status" aria-live="polite">Ready for adapter selection.</p>
+        <details><summary>Capabilities and latest event</summary><div class="details-body column"><p id="capabilities" class="help"></p><pre id="result">No event yet.</pre></div></details>
       </section>
 
-      <section class="panel state-panel" aria-labelledby="state-title">
-        <div class="section-heading"><div><p class="step">Step 2</p><h2 id="state-title">Review device state</h2></div></div>
-        <dl class="metrics">
-          <div><dt>Connection</dt><dd id="connection">Disconnected</dd></div>
-          <div><dt>Battery</dt><dd id="battery">—</dd></div>
-          <div><dt>Photos</dt><dd id="photos">0</dd></div>
-          <div><dt>Active capture</dt><dd id="capture">None</dd></div>
-        </dl>
-        <div id="status" class="status-message" role="status" aria-live="polite">Ready for a synthetic connection.</div>
-        <details>
-          <summary>Latest event and capabilities</summary>
-          <div class="details-body"><pre id="result">No event yet.</pre><p id="capabilities" class="help"></p></div>
-        </details>
+      <section class="panel" aria-labelledby="actions-title">
+        <div class="section-heading"><div><p class="step">03 · Actions</p><h2 id="actions-title">Capability controls</h2></div></div>
+        <div class="action-grid">
+          <button type="button" data-command="camera.take_photo" data-capability="camera.photo">Take glasses photo</button>
+          <button type="button" data-command="camera.open_preview" data-capability="camera.preview">Open glasses preview</button>
+          <button type="button" data-command="camera.close_preview" data-capability="camera.preview">Close glasses preview</button>
+          <button type="button" data-command="camera.start_video" data-capability="camera.video">Start glasses video</button>
+          <button type="button" data-command="camera.stop_video" data-capability="camera.video">Stop glasses video</button>
+          <button type="button" data-command="audio.start_recording" data-capability="audio.recording">Start glasses audio</button>
+          <button type="button" data-command="audio.stop_recording" data-capability="audio.recording">Stop glasses audio</button>
+          <button type="button" data-command="stream.start" data-capability="stream.live">Start live stream state</button>
+          <button type="button" data-command="stream.stop" data-capability="stream.live">Stop live stream state</button>
+          <button type="button" data-command="device.get_battery" data-capability="device.battery">Refresh battery</button>
+          <button type="button" data-command="device.get_version" data-capability="device.version">Read versions</button>
+          <button type="button" data-command="media.list" data-capability="media.list">List media metadata</button>
+        </div>
+        <div class="actions"><div><label for="media-item">Synthetic/bridge media item</label><select id="media-item"><option value="">List media first</option></select></div><button id="transfer-media" class="secondary" type="button" disabled>Request transfer</button></div>
+        <p class="help">Unavailable controls are disabled from the negotiated capability set. “Live stream state” exercises lifecycle only until a reviewed WebRTC/LiveKit sink is connected.</p>
+      </section>
+    </div>
+
+    <div class="workspace media-workspace">
+      <section class="panel" aria-labelledby="preview-title">
+        <div class="section-heading"><div><p class="step">04 · Browser source</p><h2 id="preview-title">Phone or computer camera preview</h2></div><span id="preview-chip" class="chip">Off</span></div>
+        <div id="preview-shell" class="preview-shell"><video id="preview" playsinline muted></video><p id="preview-empty">No browser camera active.</p></div><canvas id="snapshot" hidden></canvas>
+        <div class="actions"><button id="start-preview" class="secondary" type="button">Open browser camera + mic</button><button id="stop-preview" class="secondary" type="button" disabled>Close preview</button><button id="capture-browser" class="secondary" type="button" disabled>Download snapshot</button><button id="record-browser" class="secondary" type="button" disabled>Record locally</button><button id="stop-browser-recording" class="secondary" type="button" disabled>Stop + download</button></div>
+        <p class="help"><strong>Separate source:</strong> this uses the browser device—not the selected glasses—and uploads nothing.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="voice-title">
+        <div class="section-heading"><div><p class="step">05 · Voice</p><h2 id="voice-title">Push-to-talk commands</h2></div><span id="voice-chip" class="chip">Idle</span></div>
+        <p>Use an exact phrase: connect device, disconnect device, take photo, start/stop video, start/stop audio, start/stop streaming, or clear view.</p>
+        <div class="actions"><button id="listen" class="primary compact" type="button">Listen once</button><button id="stop-listen" class="secondary" type="button" disabled>Stop listening</button></div>
+        <p id="transcript" class="transcript" aria-live="polite">No transcript.</p>
+        <div id="voice-confirm" class="confirm-box" hidden><p id="voice-pending"></p><div class="actions"><button id="confirm-voice" class="primary compact" type="button">Confirm command</button><button id="cancel-voice" class="secondary" type="button">Cancel</button></div></div>
+        <p class="help">Voice recognition depends on browser support and may use the browser vendor’s speech service. No continuous listening is enabled.</p>
       </section>
     </div>
 
     <section class="panel history-panel" aria-labelledby="history-title">
-      <div class="section-heading">
-        <div><p class="step">Step 3</p><h2 id="history-title">Local review history</h2></div>
-        <span id="history-count" class="chip">0 events</span>
-      </div>
-      <div id="empty-history" class="empty-state">Run a command to create a local synthetic review record.</div>
-      <ol id="history" class="history-list"></ol>
-      <div class="actions">
-        <button id="download" class="secondary" type="button">Download JSON</button>
-        <button id="copy-brief" class="secondary" type="button">Copy Markdown brief</button>
-        <button id="clear-history" class="text-button" type="button">Clear local history</button>
-      </div>
+      <div class="section-heading"><div><p class="step">06 · Audit</p><h2 id="history-title">Bounded local event history</h2></div><span id="history-count" class="chip">0 events</span></div>
+      <div id="empty-history" class="empty-state">Run an action to create a local synthetic or bridge event record.</div><ol id="history" class="history-list"></ol>
+      <div class="actions"><button id="refresh" class="secondary" type="button">Refresh state</button><button id="download" class="secondary" type="button">Download JSON</button><button id="copy-brief" class="secondary" type="button">Copy review brief</button><button id="reset" class="text-button" type="button">Reset simulator</button><button id="clear-history" class="text-button" type="button">Clear browser history</button></div>
     </section>
   </main>
-
-  <footer>
-    <p><strong>Fieldline is a research interface.</strong> Physical hardware, clinical workflows, privacy, human factors, and regulatory status remain unvalidated.</p>
-    <p><a href="/method">Read the method and limitations</a></p>
-  </footer>
+  <footer><p><strong>Fieldline preserves the adapter boundary.</strong> Physical hardware, firmware, transport security, media integrity, privacy, clinical workflow, human factors, and regulatory status remain unvalidated until tested and approved.</p><p><a href="/method">Read architecture, frameworks, and limitations</a></p></footer>
 </body>
 </html>

@@ -31,11 +31,18 @@ class HeyCyanAdapter(private val vendor: HeyCyanVendorApi) : DeviceDriver {
     override suspend fun execute(command: DeviceCommand): DeviceResult = try {
         when (command.name) {
             "device.get_battery" -> DeviceResult.Success(command.id, "device.battery", mapOf("level" to vendor.battery().toString()))
+            "device.get_version" -> DeviceResult.Success(command.id, "device.version", vendor.versions())
             "camera.take_photo" -> DeviceResult.Success(command.id, "camera.photo_requested", mapOf("request" to vendor.takePhoto()))
             "camera.start_video" -> { vendor.startVideo(); DeviceResult.Success(command.id, "camera.video_started") }
             "camera.stop_video" -> { vendor.stopVideo(); DeviceResult.Success(command.id, "camera.video_stopped") }
             "audio.start_recording" -> { vendor.startAudio(); DeviceResult.Success(command.id, "audio.recording_started") }
             "audio.stop_recording" -> { vendor.stopAudio(); DeviceResult.Success(command.id, "audio.recording_stopped") }
+            "media.get_counts" -> DeviceResult.Success(command.id, "media.counts", vendor.mediaCounts())
+            "media.list" -> DeviceResult.Success(command.id, "media.list", mapOf("items_json" to vendor.listMediaMetadata()))
+            "media.transfer" -> {
+                val mediaId = command.payload["media_id"] ?: return DeviceResult.Rejected(command.id, "media_id_required")
+                DeviceResult.Success(command.id, "media.transfer_requested", vendor.transferMedia(mediaId))
+            }
             else -> DeviceResult.Rejected(command.id, "unsupported_command")
         }
     } catch (error: Exception) {
@@ -50,12 +57,17 @@ interface HeyCyanVendorApi {
     suspend fun disconnect()
     suspend fun readStatus(): HeyCyanStatus
     suspend fun battery(): Int
+    suspend fun versions(): Map<String, String>
     suspend fun takePhoto(): String
     suspend fun startVideo()
     suspend fun stopVideo()
     suspend fun startAudio()
     suspend fun stopAudio()
+    suspend fun mediaCounts(): Map<String, String>
+    /** JSON metadata only; media bytes remain inside the authorized bridge. */
+    suspend fun listMediaMetadata(): String
+    /** Return transfer ID/destination/checksum state without logging media bytes. */
+    suspend fun transferMedia(mediaId: String): Map<String, String>
 }
 
 data class HeyCyanStatus(val batteryPercent: Int?, val firmwareVersion: String?)
-

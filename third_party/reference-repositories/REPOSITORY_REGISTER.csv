@@ -1,0 +1,6 @@
+repository,url,branch,commit,license,local_archive,bytes,role,status,reviewed_utc
+Mentra-Community/MentraOS,https://github.com/Mentra-Community/MentraOS,dev,6aa07607dbc708c2ea3628a82a34db28fc509b55,MIT,"snapshots/mentraos-6aa07607dbc7.tar.gz.* (4 parts)",283191500,cross-device glasses runtime architecture,reference-only,2026-07-17
+livekit/client-sdk-android,https://github.com/livekit/client-sdk-android,main,5011da6fc302fefcdc869faecae2e07055f1c8c5,Apache-2.0,snapshots/livekit-android-5011da6fc302.tar.gz,955568,Android real-time audio/video transport,reference-only,2026-07-17
+KhronosGroup/OpenXR-SDK-Source,https://github.com/KhronosGroup/OpenXR-SDK-Source,main,211e2f4f0b79932300a845f3a8ed75026dbfa4a3,Apache-2.0,snapshots/openxr-sdk-source-211e2f4f0b79.tar.gz,4657945,XR API and loader samples,reference-only,2026-07-17
+Project-MONAI/monai-deploy-app-sdk,https://github.com/Project-MONAI/monai-deploy-app-sdk,main,4f777eedf5edc6df739163326978b21db7876ac2,Apache-2.0,snapshots/monai-deploy-app-sdk-4f777eedf5ed.tar.gz,1258889,medical inference application structure,reference-only,2026-07-17
+nvidia-holoscan/holohub,https://github.com/nvidia-holoscan/holohub,main,53cb66a1ae40b6f993c22b81f9e1cdbf1baec241,Apache-2.0,"snapshots/holohub-53cb66a1ae40.tar.gz.* (4 parts)",331821907,low-latency endoscopy and sensor pipeline examples,reference-only,2026-07-17

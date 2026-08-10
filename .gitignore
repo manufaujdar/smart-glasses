@@ -1,0 +1,16 @@
+.DS_Store
+.idea/
+.gradle/
+**/build/
+local.properties
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+artifacts/device-captures/*
+!artifacts/device-captures/.gitkeep
+third_party/heycyan/*.aar
+third_party/heycyan/*.framework/
+

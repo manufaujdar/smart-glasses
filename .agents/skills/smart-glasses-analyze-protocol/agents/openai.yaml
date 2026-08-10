@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Glasses Protocol Analysis"
+  short_description: "Analyze device protocols behind safe adapters"
+  default_prompt: "Use $smart-glasses-analyze-protocol to analyze this device protocol and propose a safe adapter contract."

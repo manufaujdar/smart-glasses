@@ -1,0 +1,32 @@
+SMART GLASSES CLINICAL PLATFORM — HUMAN START PAGE
+==================================================
+
+Status: research prototype. It is not a clinical diagnostic or treatment device.
+
+READ FIRST
+----------
+
+1. README.md
+2. docs/00-project-overview.md
+3. docs/architecture/
+4. docs/security/
+5. docs/testing/
+
+HUMAN WORK
+----------
+
+Use docs/ for readable product, safety, protocol, research, and architecture work.
+Device captures belong only in artifacts/device-captures/ and must not contain
+patient information. Vendor materials belong in third_party/ with license records.
+Implementation is under apps/, packages/, services/, and tools/.
+
+Formal reports may be DOCX or PDF; working human notes may be TXT. Existing MD
+documents render directly in Codex/GitHub.
+
+AI-agent instructions and memory are in AGENTS.md and .ai/.
+
+STARTUP TEAM
+------------
+
+For prototype idea-to-release work, ask the agent to use the roster and explicit
+gears in .ai/TEAM.md. Clinical, privacy, protocol, and validation boundaries still apply.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Glasses Safety Review"
+  short_description: "Review clinical prototype safety and privacy"
+  default_prompt: "Use $smart-glasses-safety-review to audit this prototype workflow for safety and privacy risks."

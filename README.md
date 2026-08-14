@@ -1,5 +1,8 @@
 # Smart Glasses Clinical Platform
 
+Read the [documentation map](docs/README.md) before changing device contracts,
+capture behavior, clinical boundaries, or vendor adapters.
+
 Android-first research and prototyping workspace for a healthcare-focused smart-glasses platform.
 
 The first hardware target is HeyCyan-compatible camera glasses. The architecture deliberately keeps the device driver behind a small capability API so the same clinical workflows can later run on MentraOS-compatible devices, Brilliant Frame/Halo, Vuzix, or proprietary hardware.
@@ -55,7 +58,8 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
 
 The original project code is available under Apache-2.0. See [LICENSE](LICENSE),
 [NOTICE](NOTICE), [CONTRIBUTING.md](CONTRIBUTING.md),
-[GOVERNANCE.md](GOVERNANCE.md), and [COMPLIANCE.md](COMPLIANCE.md). Third-party
+[GOVERNANCE.md](GOVERNANCE.md), [COMPLIANCE.md](COMPLIANCE.md), and
+[PRIVACY_AND_DATA_BOUNDARY.md](PRIVACY_AND_DATA_BOUNDARY.md). Third-party
 SDKs, source archives, datasets, and models retain their own terms and require
 separate provenance review. A version or passing test suite does not imply
 clinical validation, regulatory clearance, or production readiness.

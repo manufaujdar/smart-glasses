@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added `PRIVACY_AND_DATA_BOUNDARY.md` to distinguish the Apache-2.0 source license from device, clinical, and deployment-specific privacy obligations.
 - Added the Fieldline multi-adapter FastAPI gateway and responsive integration
   console with adapter discovery/selection, capability-gated device actions,
   WebSocket events, browser-local camera/microphone capture, push-to-talk voice

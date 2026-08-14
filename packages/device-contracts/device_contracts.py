@@ -16,6 +16,9 @@ class Capability(str, Enum):
     MEDIA_LIST = "media.list"
     MEDIA_TRANSFER = "media.transfer"
     DISPLAY = "display.text"
+    CAMERA_PREVIEW = "camera.preview"
+    LIVE_STREAM = "stream.live"
+    VOICE_COMMAND = "voice.command"
 
 
 class ConnectionState(str, Enum):
@@ -45,4 +48,3 @@ class DeviceEvent:
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
-

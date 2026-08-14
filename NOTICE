@@ -1,0 +1,9 @@
+Smart Glasses Clinical Platform
+
+Copyright 2026 Manu Faujdar.
+
+This repository contains original research-prototype code. It does not include
+patient data, clinical recordings, credentials, proprietary SDK binaries, or
+unverified model weights. Third-party references, commit-pinned research
+snapshots, and optional integration boundaries retain their own licenses and
+do not change the license of this repository.

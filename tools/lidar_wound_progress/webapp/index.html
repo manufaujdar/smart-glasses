@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f7f5" />
+    <meta name="description" content="Local paired-photo wound change review research prototype" />
+    <title>Depthline · Paired photo review</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="." aria-label="Depthline home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28" role="img"><path d="M5 7.5h7.2a6.5 6.5 0 0 1 0 13H5z" /><path d="M9 11.5h3.2a2.5 2.5 0 0 1 0 5H9z" /><path d="M18.5 8.5v11" /></svg></span><span>Depthline</span></a>
+      <span class="header-status">Photo route · local only</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Paired-photo research tool</p>
+          <h1 id="page-title">Compare two photos.<br /><em>See the difference.</em></h1>
+          <p class="lede">Depthline lines up an earlier and follow-up capture, checks the pair, and reports measurable geometry change for review.</p>
+        </div>
+        <aside class="research-note"><strong>Photo change, not a diagnosis.</strong><span>No images leave this browser. Results are research signals for human review.</span></aside>
+      </section>
+
+      <section class="panel workflow-panel" aria-labelledby="capture-title">
+        <div class="section-heading">
+          <div><span class="step">01</span><div><p class="eyebrow">Start here</p><h2 id="capture-title">Add two photos</h2></div></div>
+          <button class="text-button" id="loadDemo" type="button">Try the demo</button>
+        </div>
+        <div class="capture-grid">
+          <article class="capture-card" id="baselineCard">
+            <div class="capture-card-heading"><span class="capture-label">Earlier photo</span><span class="capture-state" id="baselineState">Waiting</span></div>
+            <div class="image-stage"><img id="baselinePreview" alt="Earlier photo preview" hidden /><div class="image-empty" id="baselineEmpty"><span aria-hidden="true">＋</span><strong>Add the earlier photo</strong><small>Camera or image file</small></div></div>
+            <input id="baselineFile" type="file" accept="image/*" capture="environment" hidden />
+            <label class="button secondary full" for="baselineFile">Add earlier photo</label>
+            <p class="helper" id="baselineMeta">Image stays in memory and is not saved with the result.</p>
+          </article>
+          <div class="pair-arrow" aria-hidden="true">→</div>
+          <article class="capture-card" id="followupCard">
+            <div class="capture-card-heading"><span class="capture-label">Follow-up photo</span><span class="capture-state" id="followupState">Waiting</span></div>
+            <div class="image-stage"><img id="followupPreview" alt="Follow-up photo preview" hidden /><div class="image-empty" id="followupEmpty"><span aria-hidden="true">＋</span><strong>Add the follow-up photo</strong><small>Camera or image file</small></div></div>
+            <input id="followupFile" type="file" accept="image/*" capture="environment" hidden />
+            <label class="button secondary full" for="followupFile">Add follow-up photo</label>
+            <p class="helper" id="followupMeta">Keep the same view as the earlier photo.</p>
+          </article>
+        </div>
+        <details class="capture-help"><summary><span class="guidance-icon" aria-hidden="true">i</span><span>Quick capture guide</span><small>same reference · same angle · full wound</small></summary><div class="guide-grid"><span><b>01</b> Keep the same ruler or color reference in both photos.</span><span><b>02</b> Hold the camera square and use the same distance.</span><span><b>03</b> Include the full wound and a small surrounding border.</span></div></details>
+      </section>
+
+      <section class="panel setup-panel" aria-labelledby="setup-title">
+        <div class="section-heading compact"><div><span class="step">02</span><div><p class="eyebrow">Let the tool set up</p><h2 id="setup-title">Check the pair</h2></div></div><span class="setup-status" id="depthApiStatus">Photo mode · checking…</span></div>
+        <div class="setup-grid">
+          <div class="setup-group"><h3>Scale reference</h3><p class="helper">A known reference turns pixels into millimetres. The tool can suggest it; you confirm it.</p><div class="field-row four"><label>Reference width <span>mm</span><input id="markerWidthMm" type="number" min="1" step="0.1" value="25" /></label><label>Earlier width <span>px</span><input id="baselineMarkerPx" type="number" min="1" step="1" placeholder="needed" /></label><label>Follow-up width <span>px</span><input id="followupMarkerPx" type="number" min="1" step="1" placeholder="needed" /></label><label>Days between <span>days</span><input id="daysBetween" type="number" min="0" step="1" placeholder="optional" /></label></div></div>
+          <div class="setup-group auto-group"><div class="auto-group-heading"><div><h3>Automatic first pass</h3><p class="helper">We suggest the region, alignment, lighting check, and scale pixels locally.</p></div><button class="button secondary small" id="autoSetup" type="button">Run first pass</button></div><p class="auto-status" id="autoSetupStatus" role="status">Add both photos to start.</p><div class="check-stack"><label class="check"><input id="scaleConfirmed" type="checkbox" /> <span>Scale looks right</span></label><label class="check review-check"><input id="reviewedMask" type="checkbox" /> <span>I reviewed both outlines</span></label></div></div>
+          <details class="setup-group advanced-group"><summary>Advanced settings <span>only change when auto setup needs help</span></summary><div class="field-row four"><label>X <span>%</span><input id="roiX" type="number" min="0" max="90" step="1" value="20" /></label><label>Y <span>%</span><input id="roiY" type="number" min="0" max="90" step="1" value="20" /></label><label>Width <span>%</span><input id="roiWidth" type="number" min="10" max="100" step="1" value="60" /></label><label>Height <span>%</span><input id="roiHeight" type="number" min="10" max="100" step="1" value="60" /></label></div><label>Segmentation sensitivity <output id="sensitivityValue">1.0</output><input class="range" id="sensitivity" type="range" min="0.5" max="2.5" step="0.1" value="1" /></label></details>
+        </div>
+        <button class="button primary compare-button" id="comparePair" type="button" disabled>Review the change</button>
+        <p class="form-message" id="formMessage" role="status">Add both photos to begin.</p>
+      </section>
+
+      <section class="results-section" id="resultsSection" aria-labelledby="results-title" hidden>
+        <div class="results-header"><div><p class="eyebrow">03 · Review result</p><h2 id="results-title">Your comparison</h2></div><div class="result-state" id="resultState">Review required</div></div>
+        <div class="result-summary panel"><div><span class="summary-kicker">Photo-derived change</span><strong id="summaryTitle">—</strong><p id="summaryText">—</p></div><div class="summary-number"><span>Area reduction</span><strong id="areaReduction">—</strong><small id="areaReductionUnit">calibrated when scale is present</small></div></div>
+        <div class="visual-review panel"><div class="visual-heading"><div><h3>Review the outlines</h3><p class="helper">Red overlay = locally detected wound region. Adjust the region or sensitivity, then review both outlines before accepting.</p></div><span class="visual-key"><i></i> detected region</span></div><div class="visual-grid"><div><span class="image-caption">Earlier</span><canvas id="baselineCanvas" width="640" height="420"></canvas></div><div><span class="image-caption">Later</span><canvas id="followupCanvas" width="640" height="420"></canvas></div></div></div>
+        <div class="metric-grid"><article class="metric-card"><span>Area</span><strong id="metricArea">—</strong><small id="metricAreaDetail">Earlier → later</small></article><article class="metric-card"><span>Perimeter</span><strong id="metricPerimeter">—</strong><small>outline length</small></article><article class="metric-card"><span>Longest dimension</span><strong id="metricLongest">—</strong><small>calibrated maximum</small></article><article class="metric-card"><span>Linear edge change</span><strong id="metricLinear">—</strong><small>Δarea ÷ mean perimeter</small></article></div>
+        <div class="detail-grid"><article class="panel detail-panel"><div class="section-heading compact"><div><p class="eyebrow">Image signal</p><h3>Visual comparability</h3></div><span class="detail-badge" id="ssimValue">—</span></div><div class="signal-list"><div><span>Structural similarity</span><strong id="ssimDetail">—</strong></div><div><span>Pixels with visible change</span><strong id="changedFraction">—</strong></div><div><span>Shape circularity</span><strong id="circularityDetail">—</strong></div><div><span>Color mix <small>(heuristic)</small></span><strong id="colorMixDetail">—</strong></div></div><p class="helper">These signals can change with pose, lighting, dressing, moisture, or camera settings.</p></article><article class="panel detail-panel"><div class="section-heading compact"><div><p class="eyebrow">Quality gate</p><h3>Comparison quality</h3></div><span class="detail-badge" id="qualityScore">—</span></div><div class="quality-list" id="qualityList"></div><p class="helper">An engineering check, not clinical confidence.</p></article></div>
+        <details class="panel context-panel"><summary>Optional clinical context <span>operator-entered · not inferred from the photo</span></summary><div class="context-grid"><label>Exudate amount<select id="exudate"><option value="not_recorded">Not recorded</option><option value="none">None</option><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select></label><label>Visible tissue context<select id="tissueContext"><option value="not_recorded">Not recorded</option><option value="mostly_granulation">Mostly granulation</option><option value="mixed">Mixed</option><option value="mostly_slough_or_eschar">Mostly slough or eschar</option></select></label><label>Periwound context<select id="periwound"><option value="not_recorded">Not recorded</option><option value="unchanged">No visible change</option><option value="redness_or_edema">Redness or edema</option><option value="maceration">Maceration</option><option value="other_change">Other change</option></select></label></div></details>
+        <div class="result-actions"><button class="button primary" id="saveResult" type="button">Save numbers locally</button><button class="button secondary" id="downloadResult" type="button">Download report</button><button class="text-button" id="resetPair" type="button">Start another pair</button></div>
+        <p class="disclaimer">Research note: this report describes image-derived change only. It does not determine healing, infection, tissue viability, treatment response, or clinical outcome.</p>
+      </section>
+
+      <section class="history-section panel" aria-labelledby="history-title"><div class="section-heading compact"><div><p class="eyebrow">Local history</p><h2 id="history-title">Saved comparisons</h2></div><button class="text-button danger" id="clearHistory" type="button">Clear</button></div><div id="historyList" class="history-list"><p class="helper">No numeric comparisons saved on this device.</p></div></section>
+      <details class="method-panel"><summary>About this tool</summary><p>Depthline uses calibrated digital planimetry measures—area, perimeter, longest/widest dimensions—and reports percentage area reduction alongside linear edge change. The image signal is a comparability aid. This browser route uses photos; true device depth remains separate through the native ARCore/ARKit adapters and depth-grid workflow.</p></details>
+    </main>
+    <footer class="site-footer"><span>Depthline · paired-photo research tool</span><span>No images leave this browser.</span></footer>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -21,6 +21,9 @@ class SimulatedGlasses:
         "camera.video",
         "audio.recording",
         "media.list",
+        "media.transfer",
+        "camera.preview",
+        "stream.live",
     }
     COMMAND_CAPABILITIES = {
         "device.get_battery": "device.battery",
@@ -31,6 +34,12 @@ class SimulatedGlasses:
         "audio.start_recording": "audio.recording",
         "audio.stop_recording": "audio.recording",
         "media.get_counts": "media.list",
+        "media.list": "media.list",
+        "media.transfer": "media.transfer",
+        "camera.open_preview": "camera.preview",
+        "camera.close_preview": "camera.preview",
+        "stream.start": "stream.live",
+        "stream.stop": "stream.live",
     }
 
     def __init__(
@@ -42,9 +51,14 @@ class SimulatedGlasses:
         self.state = ConnectionState.DISCONNECTED
         self.battery = 86
         self.photo_count = 0
+        self.video_count = 0
+        self.audio_count = 0
         self.recording_audio = False
         self.recording_video = False
+        self.preview_open = False
+        self.streaming = False
         self.capabilities = set(self.DEFAULT_CAPABILITIES if capabilities is None else capabilities)
+        self.media: list[dict[str, str]] = []
         self._completed_commands: dict[str, tuple[str, DeviceEvent]] = {}
 
     def execute(self, command: DeviceCommand) -> DeviceEvent:
@@ -81,6 +95,7 @@ class SimulatedGlasses:
         if command.name == "device.disconnect":
             self.state = ConnectionState.DISCONNECTED
             self.recording_audio = self.recording_video = False
+            self.preview_open = self.streaming = False
             return self._event("device.disconnected", command)
         if self.state != ConnectionState.CONNECTED:
             return self._event("command.rejected", command, {"reason": "not_connected"})
@@ -101,7 +116,17 @@ class SimulatedGlasses:
         if command.name == "camera.take_photo":
             self.photo_count += 1
             self.battery = max(0, self.battery - 1)
-            return self._event("camera.photo_captured", command, {"media_id": f"photo-{self.photo_count:04d}"})
+            media_id = f"photo-{self.photo_count:04d}"
+            self.media.append({"media_id": media_id, "kind": "photo", "source": "synthetic"})
+            return self._event("camera.photo_captured", command, {"media_id": media_id, "synthetic": True})
+        if command.name == "camera.open_preview":
+            self.preview_open = True
+            return self._event("camera.preview_started", command, {"source": "synthetic"})
+        if command.name == "camera.close_preview":
+            if not self.preview_open:
+                return self._event("command.rejected", command, {"reason": "preview_not_active"})
+            self.preview_open = False
+            return self._event("camera.preview_stopped", command)
         if command.name == "audio.start_recording":
             if self.recording_video:
                 return self._event("command.rejected", command, {"reason": "video_active"})
@@ -111,7 +136,10 @@ class SimulatedGlasses:
             if not self.recording_audio:
                 return self._event("command.rejected", command, {"reason": "audio_not_active"})
             self.recording_audio = False
-            return self._event("audio.recording_stopped", command, {"media_id": "audio-0001"})
+            self.audio_count += 1
+            media_id = f"audio-{self.audio_count:04d}"
+            self.media.append({"media_id": media_id, "kind": "audio", "source": "synthetic"})
+            return self._event("audio.recording_stopped", command, {"media_id": media_id, "synthetic": True})
         if command.name == "camera.start_video":
             if self.recording_audio:
                 return self._event("command.rejected", command, {"reason": "audio_active"})
@@ -121,9 +149,29 @@ class SimulatedGlasses:
             if not self.recording_video:
                 return self._event("command.rejected", command, {"reason": "video_not_active"})
             self.recording_video = False
-            return self._event("camera.video_stopped", command, {"media_id": "video-0001"})
+            self.video_count += 1
+            media_id = f"video-{self.video_count:04d}"
+            self.media.append({"media_id": media_id, "kind": "video", "source": "synthetic"})
+            return self._event("camera.video_stopped", command, {"media_id": media_id, "synthetic": True})
+        if command.name == "stream.start":
+            if self.streaming:
+                return self._event("command.rejected", command, {"reason": "stream_already_active"})
+            self.streaming = True
+            return self._event("stream.started", command, {"transport": "synthetic", "synthetic": True})
+        if command.name == "stream.stop":
+            if not self.streaming:
+                return self._event("command.rejected", command, {"reason": "stream_not_active"})
+            self.streaming = False
+            return self._event("stream.stopped", command)
         if command.name == "media.get_counts":
-            return self._event("media.counts", command, {"photos": self.photo_count, "videos": 0, "audio": 0})
+            return self._event("media.counts", command, {"photos": self.photo_count, "videos": self.video_count, "audio": self.audio_count})
+        if command.name == "media.list":
+            return self._event("media.list", command, {"items": [dict(item) for item in self.media], "synthetic": True})
+        if command.name == "media.transfer":
+            media_id = command.payload.get("media_id")
+            if not isinstance(media_id, str) or not any(item["media_id"] == media_id for item in self.media):
+                return self._event("command.rejected", command, {"reason": "media_not_found"})
+            return self._event("media.transfer_completed", command, {"media_id": media_id, "checksum_status": "synthetic_verified", "synthetic": True})
         return self._event("command.rejected", command, {"reason": "unsupported_command"})
 
     def _event(self, name: str, command: DeviceCommand, payload=None) -> DeviceEvent:

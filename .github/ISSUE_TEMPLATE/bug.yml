@@ -1,0 +1,29 @@
+name: Research prototype bug
+description: Report reproducible behavior using synthetic data only.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include patient data, recordings, identifiers, credentials, or proprietary SDK content.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include expected behavior and the observed safe/failure state.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Commands, fixture, device/firmware if applicable, and exact revision.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Data boundary
+      options:
+        - label: This report contains no patient data, credentials, private captures, or proprietary material.
+          required: true

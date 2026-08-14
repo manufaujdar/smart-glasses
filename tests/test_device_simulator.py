@@ -68,6 +68,28 @@ class SimulatorTests(unittest.TestCase):
         self.assertEqual(event.payload["reason"], "invalid_command_payload")
         self.assertEqual(device.state.value, "disconnected")
 
+    def test_stream_preview_and_disconnect_return_to_safe_state(self):
+        device = SimulatedGlasses()
+        device.execute(DeviceCommand("device.connect"))
+        self.assertEqual(device.execute(DeviceCommand("camera.open_preview")).name, "camera.preview_started")
+        self.assertEqual(device.execute(DeviceCommand("stream.start")).name, "stream.started")
+        device.execute(DeviceCommand("device.disconnect"))
+        self.assertFalse(device.preview_open)
+        self.assertFalse(device.streaming)
+        self.assertFalse(device.recording_audio)
+        self.assertFalse(device.recording_video)
+
+    def test_synthetic_media_list_and_transfer_are_correlated(self):
+        device = SimulatedGlasses()
+        device.execute(DeviceCommand("device.connect"))
+        photo = device.execute(DeviceCommand("camera.take_photo"))
+        media_id = photo.payload["media_id"]
+        listed = device.execute(DeviceCommand("media.list"))
+        self.assertEqual(listed.payload["items"][0]["media_id"], media_id)
+        transferred = device.execute(DeviceCommand("media.transfer", {"media_id": media_id}))
+        self.assertEqual(transferred.name, "media.transfer_completed")
+        self.assertEqual(transferred.payload["checksum_status"], "synthetic_verified")
+
 
 if __name__ == "__main__":
     unittest.main()

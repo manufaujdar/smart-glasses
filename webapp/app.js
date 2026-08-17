@@ -32,7 +32,9 @@ function nextId(prefix = "web") { sequence += 1; return `${prefix}-${Date.now()}
 
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers: { "content-type": "application/json", ...(options.headers || {}) } });
-  const body = await response.json();
+  let body;
+  try { body = await response.json(); }
+  catch (_) { throw new Error(`The local gateway returned an unexpected response (${response.status}). Start the integration server and try again.`); }
   if (!response.ok) throw new Error(body.error || body.detail?.[0]?.msg || `Request failed (${response.status})`);
   return body;
 }

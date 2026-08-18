@@ -1,6 +1,6 @@
 # Smart Glasses Clinical Platform
 
-Android-first research and prototyping workspace for a healthcare-focused smart-glasses platform.
+Clinical smart-glasses workflows are difficult to test when device behavior, capture, voice, and safe-stop states are not modeled together. Smart Glasses Clinical Platform is an Android-first research and prototyping workspace that simulates those contracts before hardware deployment.
 
 The first hardware target is HeyCyan-compatible camera glasses. The architecture deliberately keeps the device driver behind a small capability API so the same clinical workflows can later run on MentraOS-compatible devices, Brilliant Frame/Halo, Vuzix, or proprietary hardware.
 

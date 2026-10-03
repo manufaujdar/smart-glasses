@@ -143,3 +143,13 @@ publication.
 ACTIVE ROLE: execution and red-team packaging. NEXT OWNER: safety/privacy and
 human-factors reviewer, then release owner for license confirmation and any
 real-device adapter approval.
+
+
+## Completed local tooling — Spec Kit (2026-10-03)
+
+Pinned v1.1.0 core + bug/assess Codex skills installed. Read .specify/INTEGRATION.md;
+existing tracker/role/privacy/human gates retain authority. Hashes, 18 commands,
+links, JSON, Bash and local-root checks pass; disposable feature/plan/tasks and
+external/traversal/symlink negative checks pass. No application/runtime or hosted
+change. Active role: local tooling release/handoff. Next owner: selected project
+product/engineering owner for an authorized task. Existing approval gates apply.

@@ -33,3 +33,14 @@ Protocol implementation and safety approval must remain separate responsibilitie
 Read `.ai/TEAM.md` before multi-role or idea-to-release work. Use its explicit
 gears and keep the task contract in `.ai/HANDOFF.md`; clinical, privacy,
 protocol, licensing, and validation boundaries remain authoritative.
+
+
+## Spec Kit development workflow
+
+GitHub Spec Kit v1.1.0 Codex commands are installed locally. Read
+`.specify/INTEGRATION.md` before using `$speckit-*`. Use the feature, bug or
+assessment chain for an authorized bounded task; small edits need no full spec.
+Existing instructions, trackers, role routing, privacy and human gates retain
+authority. Generated specs/tasks are supporting evidence, not another backlog.
+No external issue creation, paid/provider workflow, Git or release action is
+implied by installation. Source/license/hashes: `.specify/adoption.json`.

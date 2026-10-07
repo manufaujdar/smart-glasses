@@ -153,3 +153,14 @@ links, JSON, Bash and local-root checks pass; disposable feature/plan/tasks and
 external/traversal/symlink negative checks pass. No application/runtime or hosted
 change. Active role: local tooling release/handoff. Next owner: selected project
 product/engineering owner for an authorized task. Existing approval gates apply.
+
+
+## Oil UI local pass — 2026-10-07
+
+- Objective: implement minimal UI/UX corrections under the authorized portfolio request; existing trackers and unrelated work preserved.
+- Files: webapp/app.js; webapp/styles.css; tools/lidar_wound_progress/webapp/index.html; styles.css.
+- Result: Honest applied-event/storage failure, disconnected media guards, adapter/history recovery and keyboard photo upload/reflow.
+- Verification: 94 unit tests pass, four skip; JS syntax and synthetic quota/disconnect plus photo-picker/demo browser checks pass.
+- Coverage/limits: Licensed bridge, physical media/device and representative research-human-factors evidence remain with current owners; no sensor/clinical validation.
+- Evidence and upstream provenance: [portfolio report](../../UI_UX_REVIEW_2026-10-07.md), [Oil UI method/helper](../../resources/code-review/OIL_UI_REVIEW.md). This is an affected UI slice, not a renewed whole-repository audit.
+- Active gear: release review. Next owner: Device/platform and human-factors owners. No new approval pending for these local edits; existing release/governance gates remain. No commit, push, deployment, provider call or publication.

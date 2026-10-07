@@ -27,7 +27,10 @@ function readHistory() {
   try { const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); return Array.isArray(value) ? value.slice(0, MAX_HISTORY) : []; }
   catch (_) { return []; }
 }
-function writeHistory(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_HISTORY))); renderHistory(); }
+function writeHistory(items) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_HISTORY))); renderHistory(); return true; }
+  catch { return false; }
+}
 function nextId(prefix = "web") { sequence += 1; return `${prefix}-${Date.now()}-${sequence}`; }
 
 async function api(path, options = {}) {
@@ -64,6 +67,7 @@ function renderAdapterInfo() {
 }
 
 function renderState(nextState) {
+  const changedAdapter = state && state.adapter_id !== nextState.adapter_id;
   state = nextState;
   const connected = state.connection_state === "connected";
   byId("connection-chip").textContent = connected ? "Connected" : (state.connection_state || "Disconnected");
@@ -77,6 +81,8 @@ function renderState(nextState) {
   byId("connect").disabled = connected;
   byId("disconnect").disabled = !connected;
   const capabilities = new Set(state.capabilities || []);
+  if (!connected || changedAdapter) byId("media-item").replaceChildren(new Option("List media first", ""));
+  byId("transfer-media").disabled = !connected || !capabilities.has("media.transfer") || !byId("media-item").value;
   byId("capabilities").textContent = `Adapter: ${state.adapter_id || "legacy simulator"}. Declared capabilities: ${[...capabilities].join(", ") || "none"}.`;
   document.querySelectorAll("[data-capability]").forEach((button) => { button.disabled = !connected || !capabilities.has(button.dataset.capability); });
 }
@@ -89,7 +95,7 @@ function renderEvent(event) {
     const select = byId("media-item"); select.replaceChildren();
     for (const item of event.payload.items) { const option = document.createElement("option"); option.value = item.media_id; option.textContent = `${item.kind || "media"} · ${item.media_id}`; select.append(option); }
     if (!event.payload.items.length) { const option = document.createElement("option"); option.value = ""; option.textContent = "No media available"; select.append(option); }
-    byId("transfer-media").disabled = !event.payload.items.length;
+    byId("transfer-media").disabled = !event.payload.items.length || state?.connection_state !== "connected" || !state?.capabilities?.includes("media.transfer");
   }
   setStatus(rejected ? `Command rejected safely: ${event.payload?.reason || "unknown reason"}.` : `Recorded ${event.name}.`, rejected ? "warning" : "normal");
 }
@@ -115,7 +121,7 @@ async function refreshAll() {
 
 async function selectAdapter() {
   try { const result = await api("/api/adapters/select", { method: "POST", body: JSON.stringify({ adapter_id: byId("adapter").value }) }); renderState(result.state); setStatus(`Using ${result.active_adapter}.`); }
-  catch (error) { setStatus(error.message, "warning"); await refreshAll(); }
+  catch (error) { setStatus(error.message, "warning"); await refreshAll().catch(() => {}); }
 }
 
 async function discover() {
@@ -135,7 +141,8 @@ async function runCommand(name, payload = {}) {
   try {
     const response = await api("/api/command", { method: "POST", body: JSON.stringify({ name, command_id: nextId("command"), payload: commandPayload }) });
     renderEvent(response.event); renderState(response.state);
-    writeHistory([{ command: name, event: response.event.name, adapter: response.state.adapter_id, createdAt: response.event.created_at || new Date().toISOString() }, ...readHistory()]);
+    const saved = writeHistory([{ command: name, event: response.event.name, adapter: response.state.adapter_id, createdAt: response.event.created_at || new Date().toISOString() }, ...readHistory()]);
+    if (!saved) setStatus("Latest event received. Browser history could not be saved; download the current review to retain it.", "warning");
     return response;
   } catch (error) { setStatus(`No action was applied: ${error.message}`, "warning"); throw error; }
 }
@@ -212,7 +219,10 @@ byId("cancel-voice").addEventListener("click", () => { pendingVoiceCommand = nul
 byId("refresh").addEventListener("click", () => refreshAll().catch((error) => setStatus(error.message, "warning"))); byId("download").addEventListener("click", downloadHistory);
 byId("copy-brief").addEventListener("click", () => navigator.clipboard.writeText(reviewBrief()).then(() => setStatus("Review brief copied.")).catch(() => setStatus("Clipboard unavailable.", "warning")));
 byId("reset").addEventListener("click", () => api("/api/reset", { method: "POST", body: "{}" }).then((result) => { renderState(result.state); setStatus("Simulator reset."); }).catch((error) => setStatus(error.message, "warning")));
-byId("clear-history").addEventListener("click", () => { localStorage.removeItem(STORAGE_KEY); renderHistory(); });
+byId("clear-history").addEventListener("click", () => {
+  try { localStorage.removeItem(STORAGE_KEY); renderHistory(); setStatus("Browser history cleared."); }
+  catch { setStatus("Browser history could not be cleared. Storage is unavailable.", "warning"); }
+});
 window.addEventListener("beforeunload", () => browserStream?.getTracks().forEach((track) => track.stop()));
 
 renderHistory(); refreshAll().then(() => discover()).catch((error) => { byId("gateway-status").textContent = "Gateway unavailable"; setStatus(error.message, "warning"); }); connectSocket();

@@ -44,3 +44,9 @@ Existing instructions, trackers, role routing, privacy and human gates retain
 authority. Generated specs/tasks are supporting evidence, not another backlog.
 No external issue creation, paid/provider workflow, Git or release action is
 implied by installation. Source/license/hashes: `.specify/adoption.json`.
+
+## Shared AI-agent resources
+
+When a task needs a shared role or resource, read [MASTER_AI_AGENTS.md](MASTER_AI_AGENTS.md).
+Select only the relevant definition. Existing project roles, scoped instructions,
+data boundaries, source-of-truth records, and release gates retain authority.

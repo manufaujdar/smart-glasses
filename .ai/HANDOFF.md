@@ -171,3 +171,24 @@ TASK / OUTCOME: apply the authorized portfolio scroll/settings audit. Depthline 
 FILES: webapp/app.js, webapp/index.html; tools/lidar_wound_progress/webapp/app.js and index.html; three focused UI/preference test files.
 CHECKS: 96 unittest cases, 4 existing optional integration skips; Node syntax, Ruff check-only, deterministic frontend audit and whitespace check passed. Chromium synthetic desktop (1280×720)/phone (390×844) verifies zero slider-scroll delta, failed save preserving history, successful retry, same-case context retained after Reset and review/calibration flags reset. Browser-preview preferences persist and govern mocked media/recognition sessions.
 BOUNDARY: no protocol, capture destination, depth model, clinical capability or physical device behavior changed. No new library or deployment. Physical microphone/speech/device and screen-reader evidence remains with the existing device/human-factors owner. Active gear: release review. Next owner: portfolio release owner for focused Git branch integration, then existing device/safety owners; no additional approval required for the authorized source push.
+
+
+## Repository quality tooling · 11 October 2026
+
+TASK / OUTCOME: user-authorized tooling integration and main-only publication.
+Repository-owned pre-commit/pre-push gates retain native hooks and run redacted
+staged/outgoing-history secret checks, native tests, selected engineering docs,
+offline links, workflow audits, declared dependency checks and synthetic browser
+regressions. CodeRabbit preparation remains manual without a model call. Public
+main-push CodeQL adds deterministic Python/JavaScript analysis.
+FILES: QUALITY.md, .quality/, tools/quality.py and companion tool/test files,
+.pre-commit-config.yaml and pinned quality/manual-review/CodeQL CI workflows.
+Bounded Depthline color-token changes fix contrast failures exposed by axe.
+CHECKS: 96 unit cases (4 existing optional integration skips), Python compilation,
+Node syntax, frontend deterministic audit, 13 tool guard/template cases and four
+desktop/phone browser cases pass. Ruff, actionlint, offline zizmor, Markdown style
+and offline guide links pass. QA lock audit has zero vulnerabilities.
+BOUNDARY: only synthetic browser state/media/recognition mocks; no new SDK, live
+provider/model, device capture, clinical promise, deployment or release bypass.
+Active gear: release review. Next owner: existing device/safety owners for actual
+device evidence; portfolio owner for hosted main-CI receipt and future findings.

@@ -2,6 +2,7 @@
 
 const STORAGE_KEY = "fieldline-integration-history-v2";
 const MAX_HISTORY = 80;
+const PREFERENCES_KEY = "fieldline-browser-preferences-v1";
 const byId = (id) => document.getElementById(id);
 let sequence = 1;
 let adapters = [];
@@ -149,11 +150,11 @@ async function runCommand(name, payload = {}) {
 
 async function openBrowserPreview() {
   try {
-    browserStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: true });
+    browserStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: byId("preview-audio").checked });
     byId("preview").srcObject = browserStream; await byId("preview").play(); byId("preview-empty").hidden = true;
     byId("preview-chip").textContent = "Browser source on"; byId("start-preview").disabled = true;
     ["stop-preview", "capture-browser", "record-browser"].forEach((id) => { byId(id).disabled = false; });
-    setStatus("Browser camera and microphone opened locally. This is not a glasses feed.");
+    setStatus(`Browser camera${byId("preview-audio").checked ? " and microphone" : ""} opened locally. This is not a glasses feed.`);
   } catch (error) { setStatus(`Browser media unavailable: ${error.message}`, "warning"); }
 }
 
@@ -190,7 +191,7 @@ async function processVoice(text) {
 function startListening() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { setStatus("This browser does not provide push-to-talk speech recognition.", "warning"); return; }
-  recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = "en-US";
+  recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = byId("speech-language").value;
   recognition.onstart = () => { byId("voice-chip").textContent = "Listening"; byId("listen").disabled = true; byId("stop-listen").disabled = false; };
   recognition.onresult = (event) => { const text = event.results[0][0].transcript; byId("transcript").textContent = text; processVoice(text).catch((error) => setStatus(error.message, "warning")); };
   recognition.onerror = (event) => setStatus(`Voice recognition stopped: ${event.error}.`, "warning");
@@ -207,6 +208,22 @@ function connectSocket() {
 
 function downloadHistory() { downloadBlob(new Blob([JSON.stringify({ generatedAt: new Date().toISOString(), researchOnly: true, state, latestEvent, history: readHistory() }, null, 2)], { type: "application/json" }), "fieldline-integration-review.json"); }
 function reviewBrief() { return `# Fieldline integration review\n\n- Generated: ${new Date().toISOString()}\n- Adapter: ${state?.adapter_id || "unknown"}\n- Mode: ${state?.adapter_mode || "unknown"}\n- Connection: ${state?.connection_state || "unknown"}\n- Events retained in browser: ${readHistory().length}\n\nResearch integration evidence only. No physical-device or clinical claim unless separately validated.`; }
+
+function loadBrowserPreferences() {
+  try {
+    const prefs = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || "{}");
+    if (typeof prefs.previewAudio === "boolean") byId("preview-audio").checked = prefs.previewAudio;
+    if (["en-US", "en-GB", "en-IN"].includes(prefs.speechLanguage)) byId("speech-language").value = prefs.speechLanguage;
+  } catch { byId("preferences-status").textContent = "Browser preferences unavailable; defaults remain active."; }
+}
+function saveBrowserPreferences() {
+  try {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify({ previewAudio: byId("preview-audio").checked, speechLanguage: byId("speech-language").value }));
+    byId("preferences-status").textContent = "Saved on this browser. Applies on the next preview or voice session.";
+  } catch { byId("preferences-status").textContent = "Preferences apply this session only; browser storage is unavailable."; }
+}
+loadBrowserPreferences();
+["preview-audio", "speech-language"].forEach((id) => byId(id).addEventListener("change", saveBrowserPreferences));
 
 byId("adapter").addEventListener("change", renderAdapterInfo); byId("select-adapter").addEventListener("click", selectAdapter); byId("discover").addEventListener("click", discover);
 byId("connect").addEventListener("click", () => runCommand("device.connect").catch(() => {})); byId("disconnect").addEventListener("click", () => runCommand("device.disconnect").catch(() => {}));

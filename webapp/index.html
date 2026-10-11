@@ -68,8 +68,14 @@
     <div class="workspace media-workspace">
       <section class="panel" aria-labelledby="preview-title">
         <div class="section-heading"><div><p class="step">04 · Browser source</p><h2 id="preview-title">Phone or computer camera preview</h2></div><span id="preview-chip" class="chip">Off</span></div>
+        <details><summary>Browser preferences</summary><div class="details-body column">
+          <label class="browser-preference-toggle"><input id="preview-audio" type="checkbox" checked> Include microphone on the next browser preview</label>
+          <label for="speech-language">Speech recognition language</label><select id="speech-language"><option value="en-US">English · US</option><option value="en-GB">English · UK</option><option value="en-IN">English · India</option></select>
+          <p class="help">Browser source only. Voice commands remain the exact English phrases below. Saved history export and clear are in Local event history.</p>
+          <p id="preferences-status" class="help" role="status">Preferences stay on this browser; changes apply to the next preview or voice session.</p>
+        </div></details>
         <div id="preview-shell" class="preview-shell"><video id="preview" playsinline muted></video><p id="preview-empty">No browser camera active.</p></div><canvas id="snapshot" hidden></canvas>
-        <div class="actions"><button id="start-preview" class="secondary" type="button">Open browser camera + mic</button><button id="stop-preview" class="secondary" type="button" disabled>Close preview</button><button id="capture-browser" class="secondary" type="button" disabled>Download snapshot</button><button id="record-browser" class="secondary" type="button" disabled>Record locally</button><button id="stop-browser-recording" class="secondary" type="button" disabled>Stop + download</button></div>
+        <div class="actions"><button id="start-preview" class="secondary" type="button">Open browser preview</button><button id="stop-preview" class="secondary" type="button" disabled>Close preview</button><button id="capture-browser" class="secondary" type="button" disabled>Download snapshot</button><button id="record-browser" class="secondary" type="button" disabled>Record locally</button><button id="stop-browser-recording" class="secondary" type="button" disabled>Stop + download</button></div>
         <p class="help"><strong>Separate source:</strong> this uses the browser device—not the selected glasses—and uploads nothing.</p>
       </section>
 

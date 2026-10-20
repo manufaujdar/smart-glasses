@@ -34,6 +34,11 @@ The QA folder pins Playwright 1.64.0 and axe 4.13.0. Install its Chromium browse
 ./.quality/node_modules/.bin/playwright install chromium
 ```
 
+For a trusted Chromium already installed on the verification machine, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its absolute executable path before the
+quality command. Otherwise Playwright uses its pinned browser. Record which
+browser was used with the verification result.
+
 ## What runs
 
 Staged checks scan the Git index for secrets with complete redaction and no

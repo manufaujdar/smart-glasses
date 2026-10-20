@@ -1,13 +1,24 @@
 # Smart Glasses Clinical Platform
 
-Clinical smart-glasses workflows are difficult to test when device behavior, capture, voice, and safe-stop states are not modeled together. Smart Glasses Clinical Platform is an Android-first research and prototyping workspace that simulates those contracts before hardware deployment.
+[Documentation index](docs/DOCUMENTATION_INDEX.md) ·
+[Architecture](docs/architecture/system-architecture.md) ·
+[Quality gates](QUALITY.md)
 
-The first hardware target is HeyCyan-compatible camera glasses. The architecture deliberately keeps the device driver behind a small capability API so the same clinical workflows can later run on MentraOS-compatible devices, Brilliant Frame/Halo, Vuzix, or proprietary hardware.
+Clinical smart-glasses workflows are difficult to test when device behavior, capture, voice, and
+safe-stop states are not modeled together. Smart Glasses Clinical Platform is an Android-first
+research and prototyping workspace that simulates those contracts before hardware deployment.
+
+The first hardware target is HeyCyan-compatible camera glasses. The architecture deliberately keeps
+the device driver behind a small capability API so the same clinical workflows can later run on
+MentraOS-compatible devices, Brilliant Frame/Halo, Vuzix, or proprietary hardware.
 
 ## Start here
 
 1. Read [`docs/00-project-overview.md`](docs/00-project-overview.md).
-2. Review the [`docs/research/open-source-repository-review.md`](docs/research/open-source-repository-review.md) and the HeyCyan [`docs/protocols/heycyan-compatibility.md`](docs/protocols/heycyan-compatibility.md).
+2. Review the
+[`docs/research/open-source-repository-review.md`](docs/research/open-source-repository-review.md)
+and the HeyCyan
+[`docs/protocols/heycyan-compatibility.md`](docs/protocols/heycyan-compatibility.md).
 3. For surgeon-facing work, read [`docs/surgery/START_HERE.md`](docs/surgery/START_HERE.md).
 4. Run the device and surgical-session simulators:
 
@@ -49,7 +60,8 @@ The first hardware target is HeyCyan-compatible camera glasses. The architecture
    authorized external bridge URL is configured; see
    [`docs/architecture/device-integration-runtime.md`](docs/architecture/device-integration-runtime.md).
 
-5. For a physical Android/HeyCyan test, follow [`apps/android-controller/README.md`](apps/android-controller/README.md).
+5. For a physical Android/HeyCyan test, follow
+[`apps/android-controller/README.md`](apps/android-controller/README.md).
 
 ## Open-source and research boundary
 
@@ -105,7 +117,8 @@ third_party/                   License records and placeholders; no unlicensed S
 - synthetic OT runtime with preflight, voice start/stop, live frame publishing,
   and disconnect-safe stopping
 
-This repository is a research prototype. It must not be used for diagnosis, treatment selection, surgical navigation, or production handling of patient data.
+This repository is a research prototype. It must not be used for diagnosis, treatment selection,
+surgical navigation, or production handling of patient data.
 
 The Android adapter sources define a licensed-SDK boundary but are not yet a
 buildable Android application. Physical-device behavior, permissions, thermal
